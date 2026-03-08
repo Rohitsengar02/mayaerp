@@ -33,94 +33,182 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F6F6),
-      body: Row(
-        children: [
-          // ── LEFT: Info Panel ──
-          SizedBox(
-            width: 320,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFF6B0F3A),
-                    Color(0xFFEC1349),
-                    Color(0xFFFF6B6B),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(top: -50, right: -40, child: _blob(200, 0.08)),
-                  Positioned(bottom: -60, left: -20, child: _blob(240, 0.05)),
-                  Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _backButton(context),
-                        const SizedBox(height: 48),
-                        const Text(
-                          "Plan Exam\nSchedule",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 32,
-                            letterSpacing: -1,
-                            height: 1.1,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          "Create and organize upcoming examinations for departments and courses.",
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 48),
-                        _buildStepper(),
-                        const Spacer(),
-                        _infoRow(
-                          Icons.check_circle_rounded,
-                          "Automated Conflict Checking",
-                        ),
-                        const SizedBox(height: 16),
-                        _infoRow(
-                          Icons.notifications_active_rounded,
-                          "Notify Students Instantly",
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 1100;
 
-          // ── RIGHT: Form Panel ──
-          Expanded(
-            child: Column(
-              children: [
-                _formHeader(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(48),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: _buildStepContent(key: ValueKey(_step)),
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F6F6),
+          body: isMobile
+              ? Column(
+                  children: [
+                    _buildMobileHeader(),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: _buildStepContent(key: ValueKey(_step), isMobile: isMobile),
+                        ),
+                      ),
                     ),
-                  ),
+                    _buildNavBar(isMobile),
+                  ],
+                )
+              : Row(
+                  children: [
+                    // ── LEFT: Info Panel ──
+                    SizedBox(
+                      width: 320,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Color(0xFF6B0F3A),
+                              Color(0xFFEC1349),
+                              Color(0xFFFF6B6B),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Stack(
+                          children: [
+                            Positioned(top: -50, right: -40, child: _blob(200, 0.08)),
+                            Positioned(bottom: -60, left: -20, child: _blob(240, 0.05)),
+                            Padding(
+                              padding: const EdgeInsets.all(32),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _backButton(context),
+                                  const SizedBox(height: 48),
+                                  const Text(
+                                    "Plan Exam\nSchedule",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 32,
+                                      letterSpacing: -1,
+                                      height: 1.1,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    "Create and organize upcoming examinations for departments and courses.",
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.7),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 48),
+                                  _buildStepper(),
+                                  const Spacer(),
+                                  _infoRow(
+                                    Icons.check_circle_rounded,
+                                    "Automated Conflict Checking",
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _infoRow(
+                                    Icons.notifications_active_rounded,
+                                    "Notify Students Instantly",
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // ── RIGHT: Form Panel ──
+                    Expanded(
+                      child: Column(
+                        children: [
+                          _formHeader(isMobile),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.all(48),
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                child: _buildStepContent(key: ValueKey(_step), isMobile: isMobile),
+                              ),
+                            ),
+                          ),
+                          _buildNavBar(isMobile),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                _buildNavBar(),
-              ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMobileHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 50, 20, 24),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF6B0F3A), Color(0xFFEC1349)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _backButton(context),
+              const Spacer(),
+              Text(
+                "Step ${_step + 1} of 3",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            "Plan Exam Schedule",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 24,
+              letterSpacing: -0.5,
             ),
           ),
+          const SizedBox(height: 16),
+          _buildMobileStepper(),
         ],
       ),
+    );
+  }
+
+  Widget _buildMobileStepper() {
+    return Row(
+      children: List.generate(3, (i) {
+        final isActive = _step >= i;
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.only(right: i < 2 ? 8 : 0),
+            height: 4,
+            decoration: BoxDecoration(
+              color: isActive ? Colors.white : Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        );
+      }),
     );
   }
 
@@ -229,9 +317,12 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
     ],
   );
 
-  Widget _formHeader() {
+  Widget _formHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : 48,
+        vertical: isMobile ? 16 : 24,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF1F1F1))),
@@ -241,65 +332,68 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryRed.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+              if (!isMobile) ...[
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryRed.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.add_task_rounded,
+                    color: AppColors.primaryRed,
+                    size: 24,
+                  ),
                 ),
-                child: Icon(
-                  Icons.add_task_rounded,
-                  color: AppColors.primaryRed,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
+                const SizedBox(width: 16),
+              ],
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     "Create New Exam Plan",
-                    style: AppTheme.titleStyle.copyWith(fontSize: 22),
+                    style: AppTheme.titleStyle.copyWith(fontSize: isMobile ? 18 : 22),
                   ),
                   Text(
-                    "Complete all 3 steps to publish the schedule",
+                    "Complete all 3 steps to publish",
                     style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                   ),
                 ],
               ),
             ],
           ),
-          SizedBox(
-            width: 180,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(
-                value: (_step + 1) / 3,
-                minHeight: 8,
-                color: AppColors.primaryRed,
-                backgroundColor: AppColors.primaryRed.withOpacity(0.1),
+          if (!isMobile)
+            SizedBox(
+              width: 180,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: (_step + 1) / 3,
+                  minHeight: 8,
+                  color: AppColors.primaryRed,
+                  backgroundColor: AppColors.primaryRed.withOpacity(0.1),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildStepContent({required Key key}) {
+  Widget _buildStepContent({required Key key, required bool isMobile}) {
     switch (_step) {
       case 0:
-        return _stepBasic(key: key);
+        return _stepBasic(key: key, isMobile: isMobile);
       case 1:
-        return _stepSubject(key: key);
+        return _stepSubject(key: key, isMobile: isMobile);
       case 2:
-        return _stepVenue(key: key);
+        return _stepVenue(key: key, isMobile: isMobile);
       default:
-        return _stepBasic(key: key);
+        return _stepBasic(key: key, isMobile: isMobile);
     }
   }
 
-  Widget _stepBasic({required Key key}) {
+  Widget _stepBasic({required Key key, required bool isMobile}) {
     return Column(
       key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,52 +419,67 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
               .toList(),
         ),
         const SizedBox(height: 32),
-        Row(
-          children: [
-            Expanded(
-              child: _field(
-                "Academic Year",
-                Icons.calendar_today_rounded,
-                hint: "2024-25",
+        if (isMobile) ...[
+          _field("Academic Year", Icons.calendar_today_rounded, hint: "2024-25"),
+          const SizedBox(height: 20),
+          _field("Exam Cycle", Icons.cyclone_rounded, hint: "Spring 2024"),
+          const SizedBox(height: 20),
+          _dropdown(
+            "Select Department",
+            _depts,
+            _selectedDept,
+            (v) => setState(() => _selectedDept = v!),
+          ),
+          const SizedBox(height: 20),
+          _dropdown("Target Course", ['CSE', 'ME', 'ECE'], 'CSE', (v) => {}),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(
+                child: _field(
+                  "Academic Year",
+                  Icons.calendar_today_rounded,
+                  hint: "2024-25",
+                ),
               ),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: _field(
-                "Exam Cycle",
-                Icons.cyclone_rounded,
-                hint: "Spring 2024",
+              const SizedBox(width: 20),
+              Expanded(
+                child: _field(
+                  "Exam Cycle",
+                  Icons.cyclone_rounded,
+                  hint: "Spring 2024",
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: _dropdown(
-                "Select Department",
-                _depts,
-                _selectedDept,
-                (v) => setState(() => _selectedDept = v!),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: _dropdown(
+                  "Select Department",
+                  _depts,
+                  _selectedDept,
+                  (v) => setState(() => _selectedDept = v!),
+                ),
               ),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: _dropdown(
-                "Target Course",
-                ['CSE', 'ME', 'ECE'],
-                'CSE',
-                (v) => {},
+              const SizedBox(width: 20),
+              Expanded(
+                child: _dropdown(
+                  "Target Course",
+                  ['CSE', 'ME', 'ECE'],
+                  'CSE',
+                  (v) => {},
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ],
     );
   }
 
-  Widget _stepSubject({required Key key}) {
+  Widget _stepSubject({required Key key, required bool isMobile}) {
     return Column(
       key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,29 +491,36 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
         const SizedBox(height: 32),
         _dropdown("Select Subject", _subjects, 'Data Structures', (v) => {}),
         const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: _field(
-                "Exam Date",
-                Icons.event_rounded,
-                hint: "DD/MM/YYYY",
+        if (isMobile) ...[
+          _field("Exam Date", Icons.event_rounded, hint: "DD/MM/YYYY"),
+          const SizedBox(height: 20),
+          _field("Start Time", Icons.schedule_rounded, hint: "10:00 AM"),
+          const SizedBox(height: 20),
+          _field("Duration", Icons.timer_rounded, hint: "3 Hours"),
+        ] else
+          Row(
+            children: [
+              Expanded(
+                child: _field(
+                  "Exam Date",
+                  Icons.event_rounded,
+                  hint: "DD/MM/YYYY",
+                ),
               ),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: _field(
-                "Start Time",
-                Icons.schedule_rounded,
-                hint: "10:00 AM",
+              const SizedBox(width: 20),
+              Expanded(
+                child: _field(
+                  "Start Time",
+                  Icons.schedule_rounded,
+                  hint: "10:00 AM",
+                ),
               ),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: _field("Duration", Icons.timer_rounded, hint: "3 Hours"),
-            ),
-          ],
-        ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: _field("Duration", Icons.timer_rounded, hint: "3 Hours"),
+              ),
+            ],
+          ),
         const SizedBox(height: 24),
         _field("Total Marks", Icons.numbers_rounded, hint: "100"),
         const SizedBox(height: 24),
@@ -413,7 +529,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
     );
   }
 
-  Widget _stepVenue({required Key key}) {
+  Widget _stepVenue({required Key key, required bool isMobile}) {
     return Column(
       key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,9 +566,12 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
     );
   }
 
-  Widget _buildNavBar() {
+  Widget _buildNavBar(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : 48,
+        vertical: isMobile ? 16 : 24,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Color(0xFFF1F1F1))),
@@ -461,20 +580,28 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           if (_step > 0)
-            _secondaryLargeBtn("Previous Step", () => setState(() => _step--)),
-          const Spacer(),
-          if (_step < 2)
-            _primaryLargeBtn(
-              "Save & Continue",
-              () => setState(() => _step++),
-              Icons.arrow_forward_ios_rounded,
-            )
-          else
-            _primaryLargeBtn(
-              "Publish Exam Plan",
-              () => Navigator.pop(context),
-              Icons.publish_rounded,
+            Expanded(
+              flex: isMobile ? 1 : 0,
+              child: _secondaryLargeBtn(isMobile ? "Back" : "Previous Step", () => setState(() => _step--), isMobile),
             ),
+          if (_step > 0) const SizedBox(width: 12),
+          if (!isMobile) const Spacer(),
+          Expanded(
+            flex: isMobile ? 2 : 0,
+            child: _step < 2
+                ? _primaryLargeBtn(
+                    isMobile ? "Continue" : "Save & Continue",
+                    () => setState(() => _step++),
+                    Icons.arrow_forward_ios_rounded,
+                    isMobile,
+                  )
+                : _primaryLargeBtn(
+                    isMobile ? "Publish Plan" : "Publish Exam Plan",
+                    () => Navigator.pop(context),
+                    Icons.publish_rounded,
+                    isMobile,
+                  ),
+          ),
         ],
       ),
     );
@@ -599,7 +726,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
     );
   }
 
-  Widget _primaryLargeBtn(String label, VoidCallback onTap, IconData icon) {
+  Widget _primaryLargeBtn(String label, VoidCallback onTap, IconData icon, bool isMobile) {
     return Container(
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
@@ -614,7 +741,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
       ),
       child: ElevatedButton.icon(
         onPressed: onTap,
-        icon: Icon(icon, color: Colors.white, size: 18),
+        icon: Icon(icon, color: Colors.white, size: isMobile ? 16 : 18),
         label: Text(
           label,
           style: const TextStyle(
@@ -625,7 +752,10 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 22),
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 16 : 32,
+            vertical: isMobile ? 18 : 22,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -634,11 +764,14 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
     );
   }
 
-  Widget _secondaryLargeBtn(String label, VoidCallback onTap) {
+  Widget _secondaryLargeBtn(String label, VoidCallback onTap, bool isMobile) {
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 22),
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 16 : 32,
+          vertical: isMobile ? 18 : 22,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         side: BorderSide(color: Colors.grey.shade300, width: 2),
       ),

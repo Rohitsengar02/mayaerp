@@ -42,86 +42,30 @@ class ShowcaseScreen extends StatelessWidget {
                   ),
                   child: Stack(
                     children: [
-                      // Animated Background Particles
-                      ...List.generate(15, (index) {
-                        final random = math.Random(index);
-                        return Positioned(
-                              left: random.nextDouble() * 800,
-                              top: random.nextDouble() * 1000,
-                              child: Icon(
-                                [
-                                  Icons.auto_awesome,
-                                  Icons.bubble_chart_rounded,
-                                  Icons.blur_on_rounded,
-                                  Icons.all_inclusive_rounded,
-                                ][random.nextInt(4)],
-                                color: Colors.white.withValues(alpha: 0.1),
-                                size: 40 + random.nextDouble() * 100,
-                              ),
-                            )
-                            .animate(
-                              onPlay: (controller) => controller.repeat(),
-                            )
-                            .moveY(
-                              begin: 0,
-                              end: -100,
-                              duration: (5 + random.nextInt(10)).seconds,
-                              curve: Curves.easeInOut,
-                            )
-                            .fadeIn(duration: 2.seconds)
-                            .then()
-                            .fadeOut(duration: 2.seconds);
-                      }),
-
+                      const Positioned.fill(child: _PremiumBackgroundWaves()),
                       Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                                  padding: const EdgeInsets.all(40),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.1),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.school_rounded,
-                                    size: 120,
-                                    color: Colors.white,
-                                  ),
-                                )
-                                .animate()
-                                .scale(
-                                  duration: 1200.ms,
-                                  curve: Curves.elasticOut,
-                                )
-                                .shimmer(delay: 2.seconds, duration: 2.seconds),
+                              padding: const EdgeInsets.all(40),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
+                              ),
+                              child: const Icon(Icons.school_rounded, size: 100, color: Colors.white),
+                            ).animate().scale(duration: 1200.ms, curve: Curves.elasticOut).shimmer(delay: 2.seconds, duration: 2.seconds),
                             const SizedBox(height: 32),
                             Text(
-                                  "MAYA INSTITUTE",
-                                  style: AppTheme.titleStyle.copyWith(
-                                    color: Colors.white,
-                                    fontSize: 56,
-                                    letterSpacing: 8,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                )
-                                .animate()
-                                .fadeIn(delay: 400.ms)
-                                .slideY(begin: 0.3, curve: Curves.easeOutBack),
-                            const SizedBox(height: 8),
+                              "MAYA INSTITUTE",
+                              style: AppTheme.titleStyle.copyWith(color: Colors.white, fontSize: 56, letterSpacing: 8, fontWeight: FontWeight.w900),
+                            ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.3, curve: Curves.easeOutBack),
+                            const SizedBox(height: 12),
                             Container(
                               height: 4,
                               width: 80,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
+                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
                             ).animate().scaleX(delay: 800.ms),
                           ],
                         ),
@@ -143,33 +87,69 @@ class ShowcaseScreen extends StatelessWidget {
                         ? CrossAxisAlignment.start
                         : CrossAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 40),
-                      // LOGO BOX
-                      Container(
-                        padding: EdgeInsets.all(isDesktop ? 24 : 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryRed.withValues(
-                                alpha: 0.1,
-                              ),
-                              blurRadius: 40,
-                              offset: const Offset(0, 20),
+                      if (!isDesktop) ...[
+                        const SizedBox(height: 60),
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryRed.withOpacity(0.1),
+                              shape: BoxShape.circle,
                             ),
-                          ],
-                          border: Border.all(
-                            color: AppColors.backgroundBlush,
-                            width: 2,
+                            child: const Icon(
+                              Icons.school_rounded,
+                              size: 60,
+                              color: AppColors.primaryRed,
+                            ),
+                          ).animate().scale(curve: Curves.easeOutBack),
+                        ),
+                        const SizedBox(height: 32),
+                      ],
+                      
+                      // LOGO BOX
+                      Center(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isDesktop ? 24 : 16,
+                            vertical: 12,
                           ),
-                        ),
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          height: isDesktop ? 80 : 50,
-                          fit: BoxFit.contain,
-                        ),
-                      ).animate().fadeIn().scale(curve: Curves.easeOutBack),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(100),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primaryRed.withOpacity(0.05),
+                                blurRadius: 40,
+                                offset: const Offset(0, 20),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: AppColors.backgroundBlush,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.asset(
+                                'assets/images/logo.png',
+                                height: 24,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                "MAYA ERP",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                  letterSpacing: 1.5,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ).animate().fadeIn().scale(curve: Curves.easeOutBack),
+                      ),
 
                       const SizedBox(height: 40),
 
@@ -315,17 +295,21 @@ class ShowcaseScreen extends StatelessWidget {
       children: [
         Row(
           children: [
-            _miniFeature(Icons.security_rounded, "Secure SSO"),
+            Expanded(child: _miniFeature(Icons.security_rounded, "Secure SSO")),
             const SizedBox(width: 20),
-            _miniFeature(Icons.auto_graph_rounded, "Live Insights"),
+            Expanded(
+              child: _miniFeature(Icons.auto_graph_rounded, "Live Insights"),
+            ),
           ],
         ),
         const SizedBox(height: 20),
         Row(
           children: [
-            _miniFeature(Icons.bolt_rounded, "Fast Execution"),
+            Expanded(child: _miniFeature(Icons.bolt_rounded, "Fast Execution")),
             const SizedBox(width: 20),
-            _miniFeature(Icons.workspace_premium_rounded, "Best UX"),
+            Expanded(
+              child: _miniFeature(Icons.workspace_premium_rounded, "Best UX"),
+            ),
           ],
         ),
       ],
@@ -333,29 +317,82 @@ class ShowcaseScreen extends StatelessWidget {
   }
 
   Widget _miniFeature(IconData icon, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        decoration: BoxDecoration(
-          color: AppColors.backgroundBlush.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade100),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.primaryRed, size: 20),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: AppColors.textMain,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryRed.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: AppColors.primaryRed, size: 18),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumBackgroundWaves extends StatelessWidget {
+  const _PremiumBackgroundWaves();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: List.generate(10, (index) {
+        final random = math.Random(index);
+        final size = 150.0 + random.nextDouble() * 200;
+        return Positioned(
+          left: random.nextDouble() * 1000 - 100,
+          top: random.nextDouble() * 1000 - 100,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  Colors.white.withOpacity(0.15),
+                  Colors.white.withOpacity(0),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
+          ).animate(onPlay: (c) => c.repeat(reverse: true))
+           .move(
+             begin: Offset.zero,
+             end: Offset(random.nextDouble() * 50 - 25, random.nextDouble() * 50 - 25),
+             duration: (4 + random.nextInt(4)).seconds,
+           )
+           .scale(
+             begin: const Offset(1, 1),
+             end: const Offset(1.2, 1.2),
+             duration: (3 + random.nextInt(3)).seconds,
+           ),
+        );
+      }),
     );
   }
 }

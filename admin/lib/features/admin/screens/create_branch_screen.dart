@@ -16,180 +16,199 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Row(
-        children: [
-          // Left Sidebar (Guide)
-          Container(
-            width: 450,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [const Color(0xFFF8F6F6), Colors.white],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: const Border(right: BorderSide(color: Color(0xFFF1F1F1))),
-            ),
-            padding: const EdgeInsets.all(60),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
-                ),
-                const SizedBox(height: 60),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final isMobile = width < 900;
+          
+          return Row(
+            children: [
+              // Left Sidebar (Guide) - Hidden on mobile
+              if (!isMobile)
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  width: 450,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryRed.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.business_center_rounded,
-                    color: AppColors.primaryRed,
-                    size: 40,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                const Text(
-                  "ESTABLISH NEW\nBRANCH",
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  "Provide structural details to create a new institutional branch. This will serve as the parent node for upcoming departments and courses.",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 15,
-                    height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 60),
-                _guideStep(
-                  "01",
-                  "Branch Identity",
-                  "Define the unique code and official name.",
-                ),
-                _guideStep(
-                  "02",
-                  "Dean Allocation",
-                  "Assign a primary administrator for this branch.",
-                ),
-                _guideStep(
-                  "03",
-                  "Operational Capacity",
-                  "Specify initial course and student limits.",
-                ),
-              ],
-            ),
-          ),
-
-          // Main Form
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 100,
-                vertical: 80,
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Section 1: Identity & Parameters",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.grey,
-                        letterSpacing: 1,
-                      ),
-                    ).animate().fadeIn(delay: 200.ms),
-                    const SizedBox(height: 32),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _textField(
-                            "Branch Code (e.g., SOE)",
-                            Icons.qr_code_rounded,
-                          ),
-                        ),
-                        const SizedBox(width: 32),
-                        Expanded(
-                          child: _textField(
-                            "Official Branch Name",
-                            Icons.business_rounded,
-                          ),
-                        ),
-                      ],
-                    ).animate(delay: 300.ms).fadeIn().slideY(begin: 0.1),
-                    const SizedBox(height: 60),
-                    const Text(
-                      "Section 2: Leadership & Coordination",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.grey,
-                        letterSpacing: 1,
-                      ),
-                    ).animate().fadeIn(delay: 400.ms),
-                    const SizedBox(height: 32),
-                    _textField(
-                      "Primary Dean / HOD Name",
-                      Icons.person_pin_rounded,
-                    ).animate(delay: 500.ms).fadeIn(),
-                    const SizedBox(height: 32),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _textField(
-                            "Contact Email",
-                            Icons.email_outlined,
-                          ),
-                        ),
-                        const SizedBox(width: 32),
-                        Expanded(
-                          child: _textField(
-                            "Contact Ext.",
-                            Icons.phone_rounded,
-                          ),
-                        ),
-                      ],
-                    ).animate(delay: 600.ms).fadeIn().slideY(begin: 0.1),
-                    const SizedBox(height: 100),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 24),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: const Text(
-                          "PROVISION BRANCH",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                      ),
+                    gradient: LinearGradient(
+                      colors: [const Color(0xFFF8F6F6), Colors.white],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ],
+                    border: const Border(right: BorderSide(color: Color(0xFFF1F1F1))),
+                  ),
+                  padding: const EdgeInsets.all(60),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
+                      ),
+                      const SizedBox(height: 60),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryRed.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.business_center_rounded,
+                          color: AppColors.primaryRed,
+                          size: 40,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      const Text(
+                        "ESTABLISH NEW\nBRANCH",
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -1,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        "Provide structural details to create a new institutional branch. This will serve as the parent node for upcoming departments and courses.",
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 15,
+                          height: 1.6,
+                        ),
+                      ),
+                      const SizedBox(height: 60),
+                      _guideStep(
+                        "01",
+                        "Branch Identity",
+                        "Define the unique code and official name.",
+                      ),
+                      _guideStep(
+                        "02",
+                        "Dean Allocation",
+                        "Assign a primary administrator for this branch.",
+                      ),
+                      _guideStep(
+                        "03",
+                        "Operational Capacity",
+                        "Specify initial course and student limits.",
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Main Form
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 24 : 100,
+                    vertical: isMobile ? 40 : 80,
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (isMobile) ...[
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
+                          ),
+                          const SizedBox(height: 24),
+                          const Text(
+                            "New Branch",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                        ],
+                        const Text(
+                          "Section 1: Identity & Parameters",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.grey,
+                            letterSpacing: 1,
+                          ),
+                        ).animate().fadeIn(delay: 200.ms),
+                        const SizedBox(height: 32),
+                        _row(isMobile, [
+                          _textField("Branch Code (e.g., SOE)", Icons.qr_code_rounded),
+                          _textField("Official Branch Name", Icons.business_rounded),
+                        ]).animate(delay: 300.ms).fadeIn().slideY(begin: 0.1),
+                        SizedBox(height: isMobile ? 32 : 60),
+                        const Text(
+                          "Section 2: Leadership & Coordination",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.grey,
+                            letterSpacing: 1,
+                          ),
+                        ).animate().fadeIn(delay: 400.ms),
+                        const SizedBox(height: 32),
+                        _textField("Primary Dean / HOD Name", Icons.person_pin_rounded)
+                            .animate(delay: 500.ms)
+                            .fadeIn(),
+                        const SizedBox(height: 32),
+                        _row(isMobile, [
+                          _textField("Contact Email", Icons.email_outlined),
+                          _textField("Contact Ext.", Icons.phone_rounded),
+                        ]).animate(delay: 600.ms).fadeIn().slideY(begin: 0.1),
+                        SizedBox(height: isMobile ? 60 : 100),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: const Text(
+                              "PROVISION BRANCH",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
+    );
+  }
+
+  Widget _row(bool isMobile, List<Widget> children) {
+    if (isMobile) {
+      return Column(
+        children: children
+            .map((c) => Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: c,
+                ))
+            .toList(),
+      );
+    }
+    return Row(
+      children: children
+          .map((c) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 32),
+                  child: c,
+                ),
+              ))
+          .toList(),
     );
   }
 

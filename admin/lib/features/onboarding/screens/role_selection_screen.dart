@@ -31,21 +31,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       "icon": Icons.local_library_rounded,
       "color": Colors.amber,
     },
-    {
-      "title": "HR",
-      "icon": Icons.assignment_ind_rounded,
-      "color": Colors.purple,
-    },
-    {
-      "title": "Accountant",
-      "icon": Icons.account_balance_wallet_rounded,
-      "color": Colors.green,
-    },
-    {
-      "title": "Management",
-      "icon": Icons.dashboard_customize_rounded,
-      "color": Colors.deepOrange,
-    },
   ];
 
   @override

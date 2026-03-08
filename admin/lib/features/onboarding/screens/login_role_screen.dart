@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../../../core/app_constants.dart';
 import '../../../core/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../admin/screens/admin_shell.dart';
+import '../../library/screens/library_shell.dart';
+import '../../staff/screens/staff_shell.dart';
 
 class LoginRoleScreen extends StatefulWidget {
   final String role;
@@ -33,6 +36,7 @@ class _LoginRoleScreenState extends State<LoginRoleScreen> {
                 ),
                 child: Stack(
                   children: [
+                    const Positioned.fill(child: _PremiumBackgroundWaves()),
                     Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -42,10 +46,11 @@ class _LoginRoleScreenState extends State<LoginRoleScreen> {
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.1),
                                   shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white.withOpacity(0.15), width: 2),
                                 ),
                                 child: const Icon(
                                   Icons.security_rounded,
-                                  size: 140,
+                                  size: 100,
                                   color: Colors.white,
                                 ),
                               )
@@ -54,7 +59,7 @@ class _LoginRoleScreenState extends State<LoginRoleScreen> {
                               .shimmer(delay: 1.seconds),
                           const SizedBox(height: 32),
                           Text(
-                            "Secure Login",
+                            "Access Portal",
                             style: AppTheme.titleStyle.copyWith(
                               color: Colors.white,
                               fontSize: 42,
@@ -62,7 +67,7 @@ class _LoginRoleScreenState extends State<LoginRoleScreen> {
                             ),
                           ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2),
                           Text(
-                            "Accessing the ${widget.role} segment",
+                            "Secure Verification System",
                             style: AppTheme.bodyStyle.copyWith(
                               color: Colors.white70,
                             ),
@@ -78,7 +83,14 @@ class _LoginRoleScreenState extends State<LoginRoleScreen> {
           Expanded(
             flex: isDesktop ? 4 : 10,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: isDesktop ? 48 : 24),
+              padding: EdgeInsets.symmetric(horizontal: isDesktop ? 48 : 24, vertical: 32),
+              decoration: isDesktop ? null : BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 40, offset: const Offset(0, 10))
+                ],
+              ),
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 child: Column(
@@ -223,8 +235,14 @@ class _LoginRoleScreenState extends State<LoginRoleScreen> {
                                   Navigator.pushReplacement(
                                     context,
                                     PageRouteBuilder(
-                                      pageBuilder: (context, anim1, anim2) =>
-                                          const AdminShell(),
+                                      pageBuilder: (context, anim1, anim2) {
+                                        if (widget.role == 'Library') {
+                                          return const LibraryShell();
+                                        } else if (widget.role == 'Staff') {
+                                          return const StaffShell();
+                                        }
+                                        return const AdminShell();
+                                      },
                                       transitionsBuilder:
                                           (context, anim1, anim2, child) =>
                                               FadeTransition(
@@ -320,5 +338,34 @@ class _LoginRoleScreenState extends State<LoginRoleScreen> {
         ),
       ),
     ).animate(delay: (400 + (index * 100)).ms).fadeIn().slideY(begin: 0.1);
+  }
+}
+
+class _PremiumBackgroundWaves extends StatelessWidget {
+  const _PremiumBackgroundWaves();
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: List.generate(8, (index) {
+        final random = math.Random(index);
+        final size = 150.0 + random.nextDouble() * 200;
+        return Positioned(
+          left: random.nextDouble() * 1000 - 100,
+          top: random.nextDouble() * 1000 - 100,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [Colors.white.withOpacity(0.12), Colors.white.withOpacity(0)],
+              ),
+            ),
+          ).animate(onPlay: (c) => c.repeat(reverse: true))
+           .move(begin: Offset.zero, end: Offset(random.nextDouble() * 40 - 20, random.nextDouble() * 40 - 20), duration: (4 + random.nextInt(4)).seconds)
+           .scale(begin: const Offset(1, 1), end: const Offset(1.15, 1.15), duration: (3 + random.nextInt(3)).seconds),
+        );
+      }),
+    );
   }
 }

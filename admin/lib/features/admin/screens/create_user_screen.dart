@@ -38,329 +38,335 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6F6),
-      body: Row(
-        children: [
-          // ──── LEFT GRADIENT PANEL ────
-          Expanded(
-            flex: 4,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFF880E4F),
-                    Color(0xFFEC1349),
-                    Color(0xFFFF4081),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // Decorative circles
-                  Positioned(
-                    top: -80,
-                    right: -80,
-                    child: Container(
-                      width: 300,
-                      height: 300,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.05),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 900;
+          return Row(
+            children: [
+              // ──── LEFT GRADIENT PANEL (Hidden on mobile) ────
+              if (!isMobile)
+                Expanded(
+                  flex: 4,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFF880E4F),
+                          Color(0xFFEC1349),
+                          Color(0xFFFF4081),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
                     ),
-                  ),
-                  Positioned(
-                    bottom: -100,
-                    left: -60,
-                    child: Container(
-                      width: 350,
-                      height: 350,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.05),
-                      ),
-                    ),
-                  ),
-
-                  // Content
-                  Padding(
-                    padding: const EdgeInsets.all(48),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Stack(
                       children: [
-                        // Back Button
-                        InkWell(
-                          onTap: () => Navigator.pop(context),
-                          borderRadius: BorderRadius.circular(12),
+                        // Decorative circles
+                        Positioned(
+                          top: -80,
+                          right: -80,
                           child: Container(
-                            padding: const EdgeInsets.all(10),
+                            width: 300,
+                            height: 300,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              color: Colors.white,
-                              size: 18,
+                              shape: BoxShape.circle,
+                              color: Colors.white.withValues(alpha: 0.05),
                             ),
                           ),
-                        ).animate().fadeIn().slideX(begin: -0.2),
+                        ),
+                        Positioned(
+                          bottom: -100,
+                          left: -60,
+                          child: Container(
+                            width: 350,
+                            height: 350,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withValues(alpha: 0.05),
+                            ),
+                          ),
+                        ),
 
-                        const Spacer(),
-
-                        // Avatar upload area
-                        Center(
+                        // Content
+                        Padding(
+                          padding: const EdgeInsets.all(48),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Stack(
-                                children: [
-                                  Container(
-                                    width: 120,
-                                    height: 120,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.15,
-                                      ),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.4,
+                              // Back Button
+                              InkWell(
+                                onTap: () => Navigator.pop(context),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                              ).animate().fadeIn().slideX(begin: -0.2),
+
+                              const Spacer(),
+
+                              // Avatar upload area
+                              Center(
+                                child: Column(
+                                  children: [
+                                    Stack(
+                                      children: [
+                                        Container(
+                                          width: 120,
+                                          height: 120,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.4,
+                                              ),
+                                              width: 3,
+                                            ),
+                                          ),
+                                          child: const Icon(
+                                            Icons.person,
+                                            color: Colors.white,
+                                            size: 60,
+                                          ),
                                         ),
-                                        width: 3,
-                                      ),
-                                    ),
-                                    child: const Icon(
-                                      Icons.person,
-                                      color: Colors.white,
-                                      size: 60,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: const BoxDecoration(
+                                        Positioned(
+                                          bottom: 0,
+                                          right: 0,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.white,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              Icons.camera_alt,
+                                              color: AppColors.primaryRed,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ).animate().scale(
+                                          curve: Curves.easeOutBack,
+                                          duration: 600.ms,
+                                        ),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      "Upload Profile Photo",
+                                      style: TextStyle(
                                         color: Colors.white,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.camera_alt,
-                                        color: AppColors.primaryRed,
-                                        size: 18,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ).animate().scale(
-                                curve: Curves.easeOutBack,
-                                duration: 600.ms,
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                "Upload Profile Photo",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      "PNG, JPG up to 5MB",
+                                      style: TextStyle(
+                                        color:
+                                            Colors.white.withValues(alpha: 0.7),
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "PNG, JPG up to 5MB",
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  fontSize: 13,
+                              ).animate().fadeIn(delay: 200.ms),
+
+                              const Spacer(),
+
+                              // Info cards
+                              ...[
+                                _infoTile(
+                                  Icons.verified_user_rounded,
+                                  "Secure Account Creation",
                                 ),
-                              ),
+                                const SizedBox(height: 16),
+                                _infoTile(
+                                  Icons.lock_reset_rounded,
+                                  "Auto-generated password link",
+                                ),
+                                const SizedBox(height: 16),
+                                _infoTile(
+                                  Icons.mail_lock_rounded,
+                                  "Credentials sent to email",
+                                ),
+                              ]
+                                  .animate(interval: 100.ms)
+                                  .fadeIn()
+                                  .slideX(begin: 0.2),
                             ],
                           ),
-                        ).animate().fadeIn(delay: 200.ms),
-
-                        const Spacer(),
-
-                        // Info cards
-                        ...[
-                          _infoTile(
-                            Icons.verified_user_rounded,
-                            "Secure Account Creation",
-                          ),
-                          const SizedBox(height: 16),
-                          _infoTile(
-                            Icons.lock_reset_rounded,
-                            "Auto-generated password link",
-                          ),
-                          const SizedBox(height: 16),
-                          _infoTile(
-                            Icons.mail_lock_rounded,
-                            "Credentials sent to email",
-                          ),
-                        ].animate(interval: 100.ms).fadeIn().slideX(begin: 0.2),
+                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
+                ),
 
-          // ──── RIGHT FORM PANEL ────
-          Expanded(
-            flex: 6,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 48),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
+              // ──── RIGHT FORM PANEL ────
+              Expanded(
+                flex: 6,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 24 : 64,
+                    vertical: isMobile ? 32 : 48,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryRed.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.person_add_rounded,
-                              color: AppColors.primaryRed,
-                              size: 14,
+                      // Header
+                      if (isMobile)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: InkWell(
+                            onTap: () => Navigator.pop(context),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.arrow_back_rounded, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Back to Users",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              "NEW USER",
-                              style: TextStyle(
-                                color: AppColors.primaryRed,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 11,
-                                letterSpacing: 1.5,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ).animate().fadeIn().slideX(begin: -0.2),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryRed.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.person_add_rounded,
+                                  color: AppColors.primaryRed,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "NEW USER",
+                                  style: TextStyle(
+                                    color: AppColors.primaryRed,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 11,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ).animate().fadeIn().slideX(begin: -0.2),
 
-                  const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                  Text(
-                    "Create Account",
-                    style: AppTheme.titleStyle.copyWith(
-                      fontSize: 40,
-                      letterSpacing: -1.5,
-                    ),
-                  ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2),
+                      Text(
+                        "Create Account",
+                        style: AppTheme.titleStyle.copyWith(
+                          fontSize: isMobile ? 32 : 40,
+                          letterSpacing: -1.5,
+                        ),
+                      ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2),
 
-                  Text(
-                    "Fill in the details to set up a new portal account.",
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
-                  ).animate().fadeIn(delay: 200.ms),
+                      Text(
+                        "Fill in the details to set up a new portal account.",
+                        style:
+                            TextStyle(color: Colors.grey.shade500, fontSize: 16),
+                      ).animate().fadeIn(delay: 200.ms),
 
-                  const SizedBox(height: 48),
+                      const SizedBox(height: 48),
 
-                  // ── SECTION: Personal Info ──
-                  _sectionTitle("Personal Information"),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _field(
+                      // ── SECTION: Personal Info ──
+                      _sectionTitle("Personal Information"),
+                      const SizedBox(height: 20),
+                      _responsiveRow(isMobile, [
+                        _field(
                           "First Name",
                           Icons.person_outline_rounded,
                           delay: 0,
                         ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: _field(
+                        _field(
                           "Last Name",
                           Icons.person_outline_rounded,
                           delay: 50,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _field(
+                      ]),
+                      const SizedBox(height: 20),
+                      _responsiveRow(isMobile, [
+                        _field(
                           "Date of Birth",
                           Icons.cake_rounded,
                           delay: 100,
                           hint: "DD / MM / YYYY",
                         ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: _field(
+                        _field(
                           "Phone Number",
                           Icons.phone_android_rounded,
                           delay: 150,
                           hint: "+91 9999 999 999",
                         ),
+                      ]),
+                      const SizedBox(height: 20),
+                      _field(
+                        "Full Address",
+                        Icons.location_on_rounded,
+                        delay: 200,
+                        hint: "Street, City, State, PIN",
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _field(
-                    "Full Address",
-                    Icons.location_on_rounded,
-                    delay: 200,
-                    hint: "Street, City, State, PIN",
-                  ),
 
-                  const SizedBox(height: 40),
+                      const SizedBox(height: 40),
 
-                  // ── SECTION: Account Credentials ──
-                  _sectionTitle("Account Credentials"),
-                  const SizedBox(height: 20),
-                  _field(
-                    "Email Address",
-                    Icons.alternate_email_rounded,
-                    delay: 250,
-                    hint: "user@mayainstitute.edu",
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _field(
+                      // ── SECTION: Account Credentials ──
+                      _sectionTitle("Account Credentials"),
+                      const SizedBox(height: 20),
+                      _field(
+                        "Email Address",
+                        Icons.alternate_email_rounded,
+                        delay: 250,
+                        hint: "user@mayainstitute.edu",
+                      ),
+                      const SizedBox(height: 20),
+                      _responsiveRow(isMobile, [
+                        _field(
                           "Password",
                           Icons.lock_outline_rounded,
                           delay: 300,
                           isObscure: true,
                         ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: _field(
+                        _field(
                           "Confirm Password",
                           Icons.lock_outline_rounded,
                           delay: 350,
                           isObscure: true,
                         ),
-                      ),
-                    ],
-                  ),
+                      ]),
 
-                  const SizedBox(height: 40),
+                      const SizedBox(height: 40),
 
-                  // ── SECTION: Role & Access ──
-                  _sectionTitle("Role & Access"),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _dropdownField(
+                      // ── SECTION: Role & Access ──
+                      _sectionTitle("Role & Access"),
+                      const SizedBox(height: 20),
+                      _responsiveRow(isMobile, [
+                        _dropdownField(
                           "Role",
                           Icons.shield_rounded,
                           _roles,
@@ -368,10 +374,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                           (v) => setState(() => _selectedRole = v!),
                           delay: 400,
                         ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: _dropdownField(
+                        _dropdownField(
                           "Department",
                           Icons.corporate_fare_rounded,
                           _depts,
@@ -379,30 +382,25 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                           (v) => setState(() => _selectedDept = v!),
                           delay: 450,
                         ),
+                      ]),
+                      const SizedBox(height: 20),
+                      _field(
+                        "Employee ID / Staff Code",
+                        Icons.badge_rounded,
+                        delay: 500,
+                        hint: "EMP-001",
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _field(
-                    "Employee ID / Staff Code",
-                    Icons.badge_rounded,
-                    delay: 500,
-                    hint: "EMP-001",
-                  ),
 
-                  const SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
-                  // Status Toggle
-                  _buildStatusToggle().animate().fadeIn(delay: 550.ms),
+                      // Status Toggle
+                      _buildStatusToggle().animate().fadeIn(delay: 550.ms),
 
-                  const SizedBox(height: 48),
+                      const SizedBox(height: 48),
 
-                  // ── ACTION BUTTONS ──
-                  Row(
-                    children: [
-                      // Cancel
-                      Expanded(
-                        child: OutlinedButton(
+                      // ── ACTION BUTTONS ──
+                      _responsiveRow(isMobile, [
+                        OutlinedButton(
                           onPressed: () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
@@ -423,12 +421,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 20),
-                      // Save
-                      Expanded(
-                        flex: 2,
-                        child: Container(
+                        Container(
                           height: 64,
                           decoration: BoxDecoration(
                             gradient: AppColors.primaryGradient,
@@ -483,15 +476,40 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                             ),
                           ),
                         ),
-                      ),
+                      ], flex: [1, 2]),
                     ],
-                  ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2),
-                ],
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
+    );
+  }
+
+  Widget _responsiveRow(bool isMobile, List<Widget> children,
+      {List<int>? flex}) {
+    if (isMobile) {
+      return Column(
+        children: children
+            .map((c) => Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: c,
+                ))
+            .toList(),
+      );
+    }
+    return Row(
+      children: List.generate(children.length, (i) {
+        return Expanded(
+          flex: flex != null ? flex[i] : 1,
+          child: Padding(
+            padding: EdgeInsets.only(right: i < children.length - 1 ? 20 : 0),
+            child: children[i],
+          ),
+        );
+      }),
     );
   }
 

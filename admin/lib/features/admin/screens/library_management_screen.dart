@@ -238,137 +238,148 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
   }
 
   Widget _buildInventoryStats(bool isMobile) {
-    if (isMobile) {
-      return Column(
-        children: [
-          _libStat(
-            "Issued Hub",
-            "1,840",
-            Icons.bookmark_added_rounded,
-            Colors.blue,
-            "8% of stock",
-            isMobile: true,
-          ),
-          const SizedBox(height: 16),
-          _libStat(
-            "Fine Ledger",
-            "₹12,200",
-            Icons.currency_rupee_rounded,
-            Colors.orange,
-            "94% collected",
-            isMobile: true,
-          ),
-          const SizedBox(height: 16),
-          _libStat(
-            "Daily Traffic",
-            "342",
-            Icons.groups_rounded,
-            Colors.teal,
-            "Peak at 2 PM",
-            isMobile: true,
-          ),
-        ],
-      ).animate().fadeIn().slideY(begin: 0.1);
-    }
-    return Row(
-      children: [
-        Expanded(
-          child: _libStat(
-            "Issued Hub",
-            "1,840",
-            Icons.bookmark_added_rounded,
-            Colors.blue,
-            "8% of stock",
-          ),
+    final stats = [
+      _libStat(
+        "Issued Hub",
+        "1,840",
+        Icons.bookmark_added_rounded,
+        const [Color(0xFF6366F1), Color(0xFF4F46E5), Color(0xFF3730A3)],
+        "8% of stock",
+        isMobile: isMobile,
+      ),
+      _libStat(
+        "Fine Ledger",
+        "₹12,200",
+        Icons.currency_rupee_rounded,
+        const [Color(0xFFFB7185), Color(0xFFE11D48), Color(0xFFBE123C)],
+        "94% collected",
+        isMobile: isMobile,
+      ),
+      _libStat(
+        "Daily Traffic",
+        "342",
+        Icons.groups_rounded,
+        const [Color(0xFF34D399), Color(0xFF059669), Color(0xFF047857)],
+        "Peak at 2 PM",
+        isMobile: isMobile,
+      ),
+    ];
+
+    double carouselHeight = isMobile ? 180 : 200;
+    double cardWidth = isMobile ? MediaQuery.of(context).size.width * 0.8 : 340;
+
+    return SizedBox(
+      height: carouselHeight,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: stats.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 24),
+        itemBuilder: (context, index) => SizedBox(
+          width: cardWidth,
+          child: stats[index],
         ),
-        const SizedBox(width: 24),
-        Expanded(
-          child: _libStat(
-            "Fine Ledger",
-            "₹12,200",
-            Icons.currency_rupee_rounded,
-            Colors.orange,
-            "94% collected",
-          ),
-        ),
-        const SizedBox(width: 24),
-        Expanded(
-          child: _libStat(
-            "Daily Traffic",
-            "342",
-            Icons.groups_rounded,
-            Colors.teal,
-            "Peak at 2 PM",
-          ),
-        ),
-      ],
-    ).animate().fadeIn().slideX(begin: -0.1);
+      ),
+    ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1);
   }
 
   Widget _libStat(
     String title,
     String val,
     IconData icon,
-    Color color,
+    List<Color> gradientColors,
     String trend, {
     bool isMobile = false,
   }) {
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 24 : 32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: color, size: isMobile ? 24 : 28),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(6),
+    return StatefulBuilder(
+      builder: (context, setState) {
+        bool isHovered = false;
+        return MouseRegion(
+          onEnter: (_) => setState(() => isHovered = true),
+          onExit: (_) => setState(() => isHovered = false),
+          child: AnimatedScale(
+            scale: isHovered ? 1.03 : 1.0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            child: Container(
+              padding: EdgeInsets.all(isMobile ? 16 : 24),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
+                gradient: LinearGradient(
+                  colors: gradientColors,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                child: Text(
-                  trend,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                boxShadow: [
+                  BoxShadow(
+                    color: gradientColors.last.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-          SizedBox(height: isMobile ? 16 : 24),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(icon, color: Colors.white, size: isMobile ? 24 : 28),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          trend,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        val,
+                        style: AppTheme.titleStyle.copyWith(
+                          fontSize: isMobile ? 28 : 32,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          height: 1.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            val,
-            style: AppTheme.titleStyle.copyWith(
-              fontSize: isMobile ? 28 : 32,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

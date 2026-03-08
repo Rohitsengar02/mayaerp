@@ -29,35 +29,56 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F6F6),
-      body: Row(
-        children: [
-          // ── LEFT: Profile Sidebar ──
-          _buildProfileSidebar(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 1100;
 
-          // ── RIGHT: Tabbed Content ──
-          Expanded(
-            child: Column(
-              children: [
-                _buildHeader(),
-                _buildTabBar(),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildPersonalInfoTab(),
-                      _buildAcademicTab(),
-                      _buildFeesTab(),
-                      _buildPerformanceTab(),
-                    ],
-                  ),
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F6F6),
+          body: isMobile
+              ? Column(
+                  children: [
+                    _buildMobileHeader(),
+                    _buildTabBar(isMobile),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildPersonalInfoTab(isMobile),
+                          _buildAcademicTab(isMobile),
+                          _buildFeesTab(isMobile),
+                          _buildPerformanceTab(isMobile),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    _buildProfileSidebar(),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          _buildHeader(),
+                          _buildTabBar(isMobile),
+                          Expanded(
+                            child: TabBarView(
+                              controller: _tabController,
+                              children: [
+                                _buildPersonalInfoTab(isMobile),
+                                _buildAcademicTab(isMobile),
+                                _buildFeesTab(isMobile),
+                                _buildPerformanceTab(isMobile),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -153,6 +174,76 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
     );
   }
 
+  Widget _buildMobileHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 50, 20, 24),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E1E2D),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _backButton(),
+              const SizedBox(width: 20),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.student['name'],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    widget.student['roll'],
+                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              _statusBadge(widget.student['status']),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _mobileHeaderStat("GPA", "8.92", Colors.greenAccent),
+              _mobileHeaderStat("Attend", "94%", Colors.blueAccent),
+              _mobileHeaderStat("Dues", "₹0.00", Colors.orangeAccent),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileHeaderStat(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white54, fontSize: 11),
+        ),
+      ],
+    );
+  }
+
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(32),
@@ -183,10 +274,10 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildTabBar(bool isMobile) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 20 : 32),
       alignment: Alignment.centerLeft,
       child: TabBar(
         controller: _tabController,
@@ -197,18 +288,18 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
         indicatorWeight: 3,
         dividerColor: Colors.transparent,
         tabs: const [
-          Tab(text: "Personal Info"),
+          Tab(text: "Personal"),
           Tab(text: "Academics"),
-          Tab(text: "Fees & Dues"),
+          Tab(text: "Fees"),
           Tab(text: "Performance"),
         ],
       ),
     );
   }
 
-  Widget _buildPersonalInfoTab() {
+  Widget _buildPersonalInfoTab(bool isMobile) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(isMobile ? 20 : 40),
       child: Column(
         children: [
           _infoGrid([
@@ -218,25 +309,25 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
             {"label": "GENDER", "value": "Male"},
             {"label": "BLOOD GROUP", "value": "O+ Positive"},
             {"label": "CATEGORY", "value": "General"},
-          ]),
-          const SizedBox(height: 32),
+          ], isMobile),
+          SizedBox(height: isMobile ? 24 : 32),
           _infoGrid([
             {"label": "EMAIL ADDRESS", "value": "student.name@example.com"},
             {"label": "PHONE NUMBER", "value": "+91 98765 43210"},
             {"label": "EMERGENCY CONTACT", "value": "+91 99999 00000"},
             {
-              "label": "PERMANENT ADDRESS",
+              "label": "ADDRESS",
               "value": "42, Green Valley Hub, New Delhi, India",
             },
-          ]),
+          ], isMobile),
         ],
       ).animate().fadeIn().slideY(begin: 0.05),
     );
   }
 
-  Widget _buildAcademicTab() {
+  Widget _buildAcademicTab(bool isMobile) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(isMobile ? 20 : 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -245,39 +336,37 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
             {"label": "COURSE", "value": widget.student['course']},
             {"label": "BATCH", "value": "2024-2028"},
             {"label": "SECTION", "value": "A"},
-          ]),
+          ], isMobile),
           const SizedBox(height: 32),
           const Text(
             "Enrolled Subjects",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          _subjectRow("Data Structures & Algorithms", "Theory + Lab", "CS301"),
-          _subjectRow("Discrete Mathematics", "Theory", "MA202"),
-          _subjectRow("Digital Electronics", "Theory + Lab", "EC105"),
-          _subjectRow("Environmental Studies", "Audit", "ES101"),
+          _subjectRow("Data Structures & Algorithms", "Theory + Lab", "CS301", isMobile),
+          _subjectRow("Discrete Mathematics", "Theory", "MA202", isMobile),
+          _subjectRow("Digital Electronics", "Theory + Lab", "EC105", isMobile),
+          _subjectRow("Environmental Studies", "Audit", "ES101", isMobile),
         ],
       ),
     );
   }
 
-  Widget _buildFeesTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        children: [
-          _feeCard("Academic Fee", "₹85,000", "Paid", Colors.green),
-          _feeCard("Hostel & Mess Fee", "₹45,000", "Paid", Colors.green),
-          _feeCard("Examination Fee", "₹2,500", "Pending", Colors.orange),
-          _feeCard("Library Dues", "₹450", "Overdue", Colors.red),
-        ],
-      ),
+  Widget _buildFeesTab(bool isMobile) {
+    return ListView(
+      padding: EdgeInsets.all(isMobile ? 20 : 40),
+      children: [
+        _feeCard("Academic Fee", "₹85,000", "Paid", Colors.green, isMobile),
+        _feeCard("Hostel & Mess Fee", "₹45,000", "Paid", Colors.green, isMobile),
+        _feeCard("Examination Fee", "₹2,500", "Pending", Colors.orange, isMobile),
+        _feeCard("Library Dues", "₹450", "Overdue", Colors.red, isMobile),
+      ],
     );
   }
 
-  Widget _buildPerformanceTab() {
+  Widget _buildPerformanceTab(bool isMobile) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(isMobile ? 20 : 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -286,16 +375,19 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              _sgpaCard("SEM 1", "9.2"),
-              const SizedBox(width: 16),
-              _sgpaCard("SEM 2", "8.7"),
-              const SizedBox(width: 16),
-              _sgpaCard("SEM 3", "9.1"),
-              const SizedBox(width: 16),
-              _sgpaCard("SEM 4", "8.9"),
-            ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _sgpaCard("SEM 1", "9.2"),
+                const SizedBox(width: 16),
+                _sgpaCard("SEM 2", "8.7"),
+                const SizedBox(width: 16),
+                _sgpaCard("SEM 3", "9.1"),
+                const SizedBox(width: 16),
+                _sgpaCard("SEM 4", "8.9"),
+              ],
+            ),
           ),
           const SizedBox(height: 48),
           const Text(
@@ -312,7 +404,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
             ),
             child: const Center(
               child: Text(
-                "Attendance Graph / Chart View Placeholder",
+                "Attendance Graph View",
                 style: TextStyle(color: Colors.grey),
               ),
             ),
@@ -323,9 +415,9 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
   }
 
   // ── HELPERS ──
-  Widget _infoGrid(List<Map<String, String>> items) {
+  Widget _infoGrid(List<Map<String, String>> items, bool isMobile) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 24 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -333,9 +425,9 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: 3,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: isMobile ? 1 : 3,
+          childAspectRatio: isMobile ? 4 : 3,
           crossAxisSpacing: 24,
           mainAxisSpacing: 24,
         ),
@@ -368,9 +460,9 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
     );
   }
 
-  Widget _academicDetailCard(String title, List<Map<String, String>> items) {
+  Widget _academicDetailCard(String title, List<Map<String, String>> items, bool isMobile) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 24 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -383,21 +475,29 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: items
-                .map((e) => _infoBlock(e['label']!, e['value']!))
-                .toList(),
-          ),
+          if (isMobile)
+            Column(
+              children: items.map((e) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _infoBlock(e['label']!, e['value']!),
+              )).toList(),
+            )
+          else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: items
+                  .map((e) => _infoBlock(e['label']!, e['value']!))
+                  .toList(),
+            ),
         ],
       ),
     );
   }
 
-  Widget _subjectRow(String name, String type, String code) {
+  Widget _subjectRow(String name, String type, String code, bool isMobile) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -418,21 +518,35 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (isMobile)
+                  Text(
+                    type,
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                  ),
+              ],
             ),
           ),
-          Text(
-            type,
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-          ),
-          const SizedBox(width: 40),
+          if (!isMobile)
+            Text(
+              type,
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+            ),
+          const SizedBox(width: 16),
           Text(
             code,
             style: const TextStyle(
               fontWeight: FontWeight.w900,
               color: AppColors.primaryRed,
+              fontSize: 13,
             ),
           ),
         ],
@@ -440,33 +554,34 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
     );
   }
 
-  Widget _feeCard(String title, String amount, String status, Color color) {
+  Widget _feeCard(String title, String amount, String status, Color color, bool isMobile) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 20 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(
-                amount,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 4),
+                Text(
+                  amount,
+                  style: TextStyle(
+                    fontSize: isMobile ? 16 : 18,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const Spacer(),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
@@ -476,7 +591,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.bold,
-                fontSize: 11,
+                fontSize: 10,
               ),
             ),
           ),

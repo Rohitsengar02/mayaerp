@@ -63,7 +63,7 @@ class _ReportsSettingsScreenState extends State<ReportsSettingsScreen> {
                         child: Column(
                           children: [
                             Padding(
-                              padding: const EdgeInsets.all(20),
+                              padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -72,12 +72,13 @@ class _ReportsSettingsScreenState extends State<ReportsSettingsScreen> {
                                   _buildReportCategoryTabs(true),
                                   const SizedBox(height: 24),
                                   _buildDownloadableReportsGrid(true),
-                                  const SizedBox(height: 40),
+                                  const SizedBox(height: 32),
                                   _buildSystemIntegrityBanner(true),
                                 ],
                               ),
                             ),
                             Container(
+                              width: double.infinity,
                               color: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
@@ -295,11 +296,11 @@ class _ReportsSettingsScreenState extends State<ReportsSettingsScreen> {
     bool isMobile = false,
   }) {
     Widget content = Container(
-      padding: EdgeInsets.all(isMobile ? 24 : 32),
+      padding: EdgeInsets.all(isMobile ? 20 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
+        borderRadius: BorderRadius.circular(isMobile ? 16 : 24),
+        border: Border.all(color: Colors.black.withOpacity(0.03)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,7 +325,7 @@ class _ReportsSettingsScreenState extends State<ReportsSettingsScreen> {
           Text(
             val,
             style: TextStyle(
-              fontSize: isMobile ? 28 : 32,
+              fontSize: isMobile ? 24 : 32,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -390,9 +391,9 @@ class _ReportsSettingsScreenState extends State<ReportsSettingsScreen> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: isMobile ? 1 : 2,
-        mainAxisSpacing: isMobile ? 16 : 24,
-        crossAxisSpacing: isMobile ? 16 : 24,
-        childAspectRatio: isMobile ? 2.8 : 2.5,
+        mainAxisSpacing: isMobile ? 12 : 24,
+        crossAxisSpacing: isMobile ? 12 : 24,
+        childAspectRatio: isMobile ? 3.0 : 2.5,
       ),
       itemCount: 4,
       itemBuilder: (context, i) => _reportDownloadCard(i, isMobile),
@@ -496,6 +497,8 @@ class _ReportsSettingsScreenState extends State<ReportsSettingsScreen> {
             itemCount: _recentLogs.length,
             itemBuilder: (context, i) => _auditLogRow(_recentLogs[i], isMobile),
           ),
+          const SizedBox(height: 32),
+          _protectedBox(true),
         ],
       );
     }
@@ -523,32 +526,37 @@ class _ReportsSettingsScreenState extends State<ReportsSettingsScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(20),
+          _protectedBox(false),
+        ],
+      ),
+    );
+  }
+
+  Widget _protectedBox(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 20 : 24),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(isMobile ? 16 : 20),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.vpn_lock_rounded, color: Colors.greenAccent),
+          const SizedBox(height: 16),
+          const Text(
+            "Protected Instance",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
-            child: Column(
-              children: [
-                const Icon(Icons.vpn_lock_rounded, color: Colors.greenAccent),
-                const SizedBox(height: 16),
-                const Text(
-                  "Protected Instance",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "AES-256 Encrypted Traffic",
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "AES-256 Encrypted Traffic",
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.5),
+              fontSize: 11,
             ),
           ),
         ],

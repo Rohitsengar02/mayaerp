@@ -72,6 +72,7 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
   ];
 
   @override
+  @override
   Widget build(BuildContext context) {
     if (_selectedBranch != null) {
       return BranchDetailScreen(
@@ -82,21 +83,34 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        bool isMobile = constraints.maxWidth < 1100;
+        final width = constraints.maxWidth;
+        final isMobile = width < 750;
+        final isTablet = width >= 750 && width < 1100;
+        final isDesktop = width >= 1100;
+
+        int crossAxisCount = 1;
+        if (isTablet) crossAxisCount = 2;
+        if (isDesktop) crossAxisCount = 3;
+
+        double childAspectRatio = 1.0;
+        if (isTablet) childAspectRatio = 1.25;
+        if (isDesktop) childAspectRatio = 1.4;
+        if (width > 1500) childAspectRatio = 1.55;
+
         double sidePadding = isMobile ? 20 : 40;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF8F6F6),
           body: Column(
             children: [
-              _buildHeader(isMobile),
+              _buildHeader(width < 1100),
               Expanded(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.all(sidePadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildAcademicOverview(isMobile),
+                      _buildAcademicOverview(width < 1100),
                       SizedBox(height: isMobile ? 32 : 48),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -123,7 +137,11 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
                         ],
                       ),
                       SizedBox(height: isMobile ? 16 : 32),
-                      _buildBranchGrid(isMobile),
+                      _buildBranchGrid(
+                        width,
+                        crossAxisCount,
+                        childAspectRatio,
+                      ),
                     ],
                   ),
                 ),
@@ -346,235 +364,224 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
     );
   }
 
-  Widget _buildBranchGrid(bool isMobile) {
+  Widget _buildBranchGrid(
+    double width,
+    int crossAxisCount,
+    double childAspectRatio,
+  ) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isMobile ? 1 : 2,
-        mainAxisSpacing: isMobile ? 24 : 32,
-        crossAxisSpacing: isMobile ? 24 : 32,
-        childAspectRatio: isMobile ? 1.1 : 1.6,
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: width < 1100 ? 24 : 32,
+        crossAxisSpacing: width < 1100 ? 24 : 32,
+        childAspectRatio: childAspectRatio,
       ),
       itemCount: _branches.length,
-      itemBuilder: (context, i) => _branchCard(_branches[i], i, isMobile),
+      itemBuilder: (context, i) => _branchCard(_branches[i], i, width),
     );
   }
 
-  Widget _branchCard(Map<String, dynamic> branch, int i, bool isMobile) {
+  Widget _branchCard(Map<String, dynamic> branch, int i, double width) {
+    final isXSmall = width < 500;
+    final isMobile = width < 750;
+    final isDesktop = width >= 1100;
+
     return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.black.withOpacity(0.03)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 40,
-                offset: const Offset(0, 10),
-              ),
-            ],
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 40,
+            offset: const Offset(0, 10),
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => setState(() => _selectedBranch = branch),
-              borderRadius: BorderRadius.circular(32),
-              child: Padding(
-                padding: EdgeInsets.all(isMobile ? 24 : 40),
-                child: Column(
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => setState(() => _selectedBranch = branch),
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: EdgeInsets.all(isDesktop ? 32 : (isXSmall ? 16 : 24)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: isMobile ? 60 : 90,
-                          height: isMobile ? 60 : 90,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: branch['gradient'],
-                            ),
-                            borderRadius: BorderRadius.circular(
-                              isMobile ? 18 : 28,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: branch['color'].withOpacity(0.3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            branch['icon'],
-                            color: Colors.white,
-                            size: isMobile ? 28 : 38,
-                          ),
+                    Container(
+                      width: isDesktop ? 80 : 64,
+                      height: isDesktop ? 80 : 64,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: branch['gradient'],
                         ),
-                        SizedBox(width: isMobile ? 20 : 28),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: branch['color'].withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      branch['code'],
-                                      style: TextStyle(
-                                        color: branch['color'],
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 1,
-                                      ),
-                                    ),
-                                  ),
-                                  const Icon(
-                                    Icons.more_horiz_rounded,
-                                    color: Colors.grey,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                branch['name'],
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.5,
-                                  height: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.person_outline_rounded,
-                                    size: 14,
-                                    color: Colors.grey,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    branch['dean'],
-                                    style: TextStyle(
-                                      color: Colors.grey.shade500,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    const Divider(height: 1, color: Color(0xFFF1F1F1)),
-                    const SizedBox(height: 24),
-                    if (isMobile)
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _iconStat(
-                              Icons.library_books_rounded,
-                              "${branch['coursesCount']} Units",
+                        borderRadius: BorderRadius.circular(isDesktop ? 24 : 20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (branch['color'] as Color).withValues(
+                              alpha: 0.3,
                             ),
-                            const SizedBox(width: 20),
-                            _iconStat(
-                              Icons.groups_rounded,
-                              "${branch['studentsCount']} Seats",
-                            ),
-                            const SizedBox(width: 20),
-                            _iconStat(
-                              Icons.hub_rounded,
-                              "${branch['departments']} Depts",
-                            ),
-                            const SizedBox(width: 20),
-                            _iconStat(
-                              Icons.biotech_rounded,
-                              "${branch['researchHubs']} Hubs",
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _iconStat(
-                            Icons.library_books_rounded,
-                            "${branch['coursesCount']} Units",
-                          ),
-                          _iconStat(
-                            Icons.groups_rounded,
-                            "${branch['studentsCount']} Seats",
-                          ),
-                          _iconStat(
-                            Icons.hub_rounded,
-                            "${branch['departments']} Depts",
-                          ),
-                          _iconStat(
-                            Icons.biotech_rounded,
-                            "${branch['researchHubs']} Hubs",
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                    const SizedBox(height: 24),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(100),
-                      child: LinearProgressIndicator(
-                        value: branch['occupancy'] / 100,
-                        backgroundColor: const Color(0xFFF1F1F1),
-                        valueColor: AlwaysStoppedAnimation(branch['color']),
-                        minHeight: 6,
+                      child: Icon(
+                        branch['icon'],
+                        color: Colors.white,
+                        size: isDesktop ? 32 : 28,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Occupancy Rate",
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade500,
-                            fontWeight: FontWeight.bold,
+                    SizedBox(width: isDesktop ? 20 : 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: (branch['color'] as Color).withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  branch['code'],
+                                  style: TextStyle(
+                                    color: branch['color'],
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                color: Colors.grey,
+                                size: 14,
+                              ),
+                            ],
                           ),
-                        ),
-                        Text(
-                          "${branch['occupancy']}% Capacity",
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: branch['color'],
-                            fontWeight: FontWeight.w900,
+                          const SizedBox(height: 12),
+                          Text(
+                            branch['name'],
+                            style: TextStyle(
+                              fontSize: isDesktop ? 20 : 18,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                              height: 1.1,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person_outline_rounded,
+                                size: 12,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  branch['dean'],
+                                  style: TextStyle(
+                                    color: Colors.grey.shade500,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
+                const Spacer(),
+                const Divider(height: 1, color: Color(0xFFF1F1F1)),
+                const SizedBox(height: 16),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: [
+                      _iconStat(
+                        Icons.library_books_rounded,
+                        "${branch['coursesCount']} Units",
+                      ),
+                      const SizedBox(width: 16),
+                      _iconStat(
+                        Icons.groups_rounded,
+                        "${branch['studentsCount']} Seats",
+                      ),
+                      const SizedBox(width: 16),
+                      _iconStat(
+                        Icons.hub_rounded,
+                        "${branch['departments']} Depts",
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(100),
+                  child: LinearProgressIndicator(
+                    value: branch['occupancy'] / 100,
+                    backgroundColor: const Color(0xFFF1F1F1),
+                    valueColor: AlwaysStoppedAnimation(branch['color']),
+                    minHeight: 4,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Occupancy",
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "${branch['occupancy']}% Capacity",
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: branch['color'],
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        )
+        ),
+      ),
+    )
         .animate()
-        .fadeIn(delay: (i * 100).ms)
-        .scale(begin: const Offset(0.95, 0.95));
+        .fadeIn(delay: (i * 50).ms)
+        .scale(begin: const Offset(0.98, 0.98));
   }
 
   Widget _iconStat(IconData icon, String label) {

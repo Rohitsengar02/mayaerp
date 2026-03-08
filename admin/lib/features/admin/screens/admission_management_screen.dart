@@ -179,75 +179,116 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFF8F6F6),
-      child: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildKPICards(),
-                  const SizedBox(height: 36),
-                  Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isMobile = width < 850;
+        final isNarrow = width < 1200;
+
+        return Container(
+          color: const Color(0xFFF8F6F6),
+          child: Column(
+            children: [
+              _buildHeader(context, width),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(isMobile ? 16 : 32),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(flex: 4, child: _buildProgramAllocation()),
-                      const SizedBox(width: 28),
-                      Expanded(flex: 3, child: _buildAdmissionFunnel()),
+                      _buildKPICards(width),
+                      SizedBox(height: isMobile ? 24 : 36),
+                      if (isNarrow) ...[
+                        _buildProgramAllocation(),
+                        const SizedBox(height: 24),
+                        _buildAdmissionFunnel(),
+                      ] else
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 4, child: _buildProgramAllocation()),
+                            const SizedBox(width: 28),
+                            Expanded(flex: 3, child: _buildAdmissionFunnel()),
+                          ],
+                        ),
+                      SizedBox(height: isMobile ? 24 : 36),
+                      _buildApplicationsCardSection(context, width),
                     ],
                   ),
-                  const SizedBox(height: 36),
-                  _buildApplicationsCardSection(context),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   // ─────────── HEADER ───────────
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, double width) {
+    bool isMobile = width < 700;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 22),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : 40,
+        vertical: isMobile ? 16 : 22,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF1F1F1))),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Enrollment & Admissions",
-                style: AppTheme.titleStyle.copyWith(fontSize: 26),
-              ),
-              Text(
-                "Academic Year 2023–24 • Intake open",
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              _headerBtn(
-                Icons.file_download_rounded,
-                "Export Report",
-                const Color(0xFF4F46E5),
-              ),
-              const SizedBox(width: 14),
-              _gradientBtn(context, Icons.post_add_rounded, "New Application"),
-            ],
-          ),
-        ],
-      ),
+      child: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Admissions",
+                  style: AppTheme.titleStyle.copyWith(fontSize: 22),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _gradientBtn(
+                        context,
+                        Icons.post_add_rounded,
+                        "New App",
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    _headerBtn(Icons.file_download_rounded, "", const Color(0xFF4F46E5)),
+                  ],
+                ),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Enrollment & Admissions",
+                      style: AppTheme.titleStyle.copyWith(fontSize: 26),
+                    ),
+                    Text(
+                      "Academic Year 2023–24 • Intake open",
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    _headerBtn(
+                      Icons.file_download_rounded,
+                      "Export Report",
+                      const Color(0xFF4F46E5),
+                    ),
+                    const SizedBox(width: 14),
+                    _gradientBtn(context, Icons.post_add_rounded, "New Application"),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 
@@ -312,7 +353,8 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
   }
 
   // ─────────── KPI CARDS ───────────
-  Widget _buildKPICards() {
+  Widget _buildKPICards(double width) {
+    bool isMobile = width < 850;
     final cards = [
       {
         "label": "Total Applications",
@@ -343,6 +385,33 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
         "colors": [const Color(0xFF312E81), const Color(0xFF6366F1)],
       },
     ];
+
+    if (isMobile) {
+      return SizedBox(
+        height: 195,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: cards.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 16),
+          itemBuilder: (context, i) {
+            final c = cards[i];
+            return SizedBox(
+              width: width * 0.75,
+              child: _kpiCard(
+                c['label'] as String,
+                c['value'] as String,
+                c['sub'] as String,
+                c['icon'] as IconData,
+                c['colors'] as List<Color>,
+                i,
+              ),
+            );
+          },
+        ),
+      );
+    }
+
     return Row(
       children: List.generate(cards.length, (i) {
         final c = cards[i];
@@ -744,121 +813,55 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
   }
 
   // ─────────── APPLICATION CARDS ───────────
-  Widget _buildApplicationsCardSection(BuildContext context) {
+  Widget _buildApplicationsCardSection(BuildContext context, double width) {
+    bool isMobile = width < 850;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Applications",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  "${_filtered.length} applicants found",
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                // Filter tabs
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                      ),
-                    ],
+        if (isMobile)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Applications",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: _buildFilterTabs(),
+              ),
+              const SizedBox(height: 12),
+              _buildMeritButton(),
+            ],
+          )
+        else
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Applications",
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
-                  child: Row(
-                    children: _filters.map((t) {
-                      final sel = _activeFilter == t;
-                      return GestureDetector(
-                        onTap: () => setState(() => _activeFilter = t),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 9,
-                          ),
-                          decoration: BoxDecoration(
-                            color: sel
-                                ? AppColors.primaryRed
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: sel
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.primaryRed.withValues(
-                                        alpha: 0.25,
-                                      ),
-                                      blurRadius: 8,
-                                    ),
-                                  ]
-                                : [],
-                          ),
-                          child: Text(
-                            t,
-                            style: TextStyle(
-                              fontWeight: sel
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              fontSize: 13,
-                              color: sel ? Colors.white : Colors.grey.shade600,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                  Text(
+                    "${_filtered.length} applicants found",
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                   ),
-                ),
-                const SizedBox(width: 16),
-                // Generate merit list
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryRed.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.primaryRed.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.auto_awesome_rounded,
-                        color: AppColors.primaryRed,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        "Generate Merit List",
-                        style: TextStyle(
-                          color: AppColors.primaryRed,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+                ],
+              ),
+              Row(
+                children: [
+                  _buildFilterTabs(),
+                  const SizedBox(width: 16),
+                  _buildMeritButton(),
+                ],
+              ),
+            ],
+          ),
 
         const SizedBox(height: 24),
 
@@ -866,9 +869,9 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            childAspectRatio: 0.72,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: width < 600 ? 1 : (width < 900 ? 2 : (width < 1400 ? 3 : 4)),
+            childAspectRatio: width < 600 ? 0.85 : 0.72,
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
           ),
@@ -879,299 +882,410 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
     );
   }
 
+  Widget _buildFilterTabs() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: _filters.map((t) {
+          final sel = _activeFilter == t;
+          return GestureDetector(
+            onTap: () => setState(() => _activeFilter = t),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 9,
+              ),
+              decoration: BoxDecoration(
+                color: sel ? AppColors.primaryRed : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: sel
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primaryRed.withValues(alpha: 0.25),
+                          blurRadius: 8,
+                        ),
+                      ]
+                    : [],
+              ),
+              child: Text(
+                t,
+                style: TextStyle(
+                  fontWeight: sel ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 13,
+                  color: sel ? Colors.white : Colors.grey.shade600,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildMeritButton() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primaryRed.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primaryRed.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.auto_awesome_rounded,
+            color: AppColors.primaryRed,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            "Merit List",
+            style: TextStyle(
+              color: AppColors.primaryRed,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _applicationCard(Map<String, dynamic> app, int index) {
     final status = app['status'] as String;
     final statusColor = status == 'Approved'
-        ? Colors.green
+        ? const Color(0xFF10B981)
         : status == 'Rejected'
-        ? Colors.red
-        : Colors.orange;
+            ? const Color(0xFFEF4444)
+            : const Color(0xFFF59E0B);
+    final statusBg = statusColor.withValues(alpha: 0.1);
+    
     final statusGrad = status == 'Approved'
         ? [const Color(0xFF065F46), const Color(0xFF10B981)]
         : status == 'Rejected'
-        ? [const Color(0xFF7F1D1D), const Color(0xFFEF4444)]
-        : [const Color(0xFF78350F), const Color(0xFFF59E0B)];
+            ? [const Color(0xFF7F1D1D), const Color(0xFFEF4444)]
+            : [const Color(0xFF78350F), const Color(0xFFF59E0B)];
 
     return _HoverCard(
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 18,
-              offset: const Offset(0, 7),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // ── Gradient top banner ──
-            Container(
-              height: 72,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: statusGrad
-                      .map((c) => c.withValues(alpha: 0.85))
-                      .toList(),
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(22),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(100),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Text(
-                      status.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 9,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      app['score'],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Avatar (overlapping the banner) ──
-            Transform.translate(
-              offset: const Offset(0, -28),
-              child: Container(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              // Top Banner Section
+              Container(
+                height: 80,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: statusColor.withValues(alpha: 0.3),
-                      blurRadius: 14,
-                      offset: const Offset(0, 5),
+                  gradient: LinearGradient(
+                    colors: statusGrad.map((c) => c.withValues(alpha: 0.9)).toList(),
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(
+                        status.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 9,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      "#ADM${1000 + index}",
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
                     ),
                   ],
                 ),
-                child: CircleAvatar(
-                  radius: 36,
-                  backgroundImage: NetworkImage(app['avatar']),
-                ),
               ),
-            ),
-
-            // ── Info ──
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              
+              const SizedBox(height: 44), // Space for the avatar
+              
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
                     Text(
                       app['name'],
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
-                        fontSize: 16,
+                        fontSize: 18,
+                        color: Color(0xFF1E293B),
+                        height: 1.2,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      app['course'],
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryRed,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 16),
+                    
+                    // Detail Grid
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryRed.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(100),
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Text(
-                        app['course'],
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryRed,
-                        ),
-                        textAlign: TextAlign.center,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _miniInfo(Icons.location_on_rounded, app['city']),
+                          ),
+                          Container(width: 1, height: 20, color: Colors.grey.shade200),
+                          Expanded(
+                            child: _miniInfo(Icons.calendar_month_rounded, app['date']),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 12),
-
-                    // City + Date
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.location_on_rounded,
-                          size: 12,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          app['city'],
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Icon(
-                          Icons.calendar_today_rounded,
-                          size: 12,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          app['date'],
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const Spacer(),
-
-                    // Score bar
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Merit Score with Progress
                     Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              "Merit",
+                            const Text(
+                              "Merit Percentile",
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.grey.shade400,
+                                color: Color(0xFF64748B),
                               ),
                             ),
                             Text(
                               app['score'],
                               style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
                                 color: statusColor,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 5),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: LinearProgressIndicator(
-                            value:
-                                double.parse(app['score'].replaceAll('%', '')) /
-                                100,
-                            color: statusColor,
-                            backgroundColor: statusColor.withValues(alpha: 0.1),
-                            minHeight: 6,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Action buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _cardActionBtn(
-                            Icons.visibility_rounded,
-                            Colors.blue,
-                            () => Navigator.push(
-                              context,
-                              _slideRoute(
-                                ApplicationDetailScreen(application: app),
+                        const SizedBox(height: 8),
+                        Stack(
+                          children: [
+                            Container(
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                          ),
+                            FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: double.parse(app['score'].replaceAll('%', '')) / 100,
+                              child: Container(
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [statusColor, statusColor.withValues(alpha: 0.6)],
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        if (status == 'Pending') ...[
-                          Expanded(
-                            child: _cardActionBtn(
-                              Icons.check_rounded,
-                              Colors.green,
-                              () {},
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _cardActionBtn(
-                              Icons.close_rounded,
-                              Colors.red,
-                              () {},
-                            ),
-                          ),
-                        ] else
-                          Expanded(
-                            child: _cardActionBtn(
-                              Icons.edit_note_rounded,
-                              Colors.orange,
-                              () {},
-                            ),
-                          ),
                       ],
                     ),
                   ],
                 ),
               ),
+              
+              const Spacer(),
+              
+              // Bottom Actions
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: const BoxDecoration(
+                  border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+                  color: Color(0xFFFAFAFA),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _actionBtn(
+                        "Details",
+                        Icons.visibility_outlined,
+                        const Color(0xFF4F46E5),
+                        () => Navigator.push(
+                              context,
+                              _slideRoute(ApplicationDetailScreen(application: app)),
+                            ),
+                      ),
+                    ),
+                    if (status == 'Pending') ...[
+                      const SizedBox(width: 10),
+                      _miniActionBtn(Icons.check_rounded, Colors.green, () {}),
+                      const SizedBox(width: 8),
+                      _miniActionBtn(Icons.close_rounded, Colors.red, () {}),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          // Overlapping Avatar
+          Positioned(
+            top: 42,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 38,
+                  backgroundColor: Colors.grey.shade100,
+                  backgroundImage: NetworkImage(app['avatar']),
+                ),
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    ).animate(delay: (index * 55).ms).fadeIn().slideY(begin: 0.15);
+    ),
+  );
+}
+
+  Widget _miniInfo(IconData icon, String text) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 14, color: const Color(0xFF94A3B8)),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF475569),
+              fontWeight: FontWeight.w600,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
   }
 
-  Widget _cardActionBtn(IconData icon, Color color, VoidCallback onTap) {
+  Widget _actionBtn(String label, IconData icon, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 9),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.09),
-          borderRadius: BorderRadius.circular(10),
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon, color: color, size: 17),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  Widget _miniActionBtn(IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, size: 18, color: color),
+      ),
+    );
+  }
+
+
 
   BoxDecoration _panelDecor() => BoxDecoration(
     color: Colors.white,

@@ -24,65 +24,82 @@ class _CreateBusScreenState extends State<CreateBusScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F6F6),
-      body: Row(
-        children: [
-          // Sidebar / Policy Info
-          Container(
-            width: 350,
-            color: Colors.black,
-            padding: const EdgeInsets.all(40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                const Icon(
-                  Icons.directions_bus_filled_rounded,
-                  color: Colors.white,
-                  size: 48,
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  "Fleet Expansion",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  "Registering a new bus requires valid vehicle documentation, driver certification, and approved route planning.",
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    height: 1.5,
-                  ),
-                ),
-                const Spacer(),
-                _guideStep("1", "Vehicle Details", "Verify VIN and Bus Number"),
-                _guideStep(
-                  "2",
-                  "Staff Assignment",
-                  "Assign certified Driver/Conductor",
-                ),
-                _guideStep("3", "Route Planning", "Define stops and timelines"),
-              ],
-            ),
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isMobile = constraints.maxWidth < 850;
 
-          // Form Area
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(60),
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F6F6),
+          appBar: isMobile
+              ? AppBar(
+                  elevation: 0,
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  title: const Text("Fleet Expansion", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                )
+              : null,
+          body: Row(
+            children: [
+              // Sidebar / Policy Info
+              if (!isMobile)
+                Container(
+                  width: 350,
+                  color: Colors.black,
+                  padding: const EdgeInsets.all(40),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      const Icon(
+                        Icons.directions_bus_filled_rounded,
+                        color: Colors.white,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        "Fleet Expansion",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "Registering a new bus requires valid vehicle documentation, driver certification, and approved route planning.",
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          height: 1.5,
+                        ),
+                      ),
+                      const Spacer(),
+                      _guideStep("1", "Vehicle Details", "Verify VIN and Bus Number"),
+                      _guideStep(
+                        "2",
+                        "Staff Assignment",
+                        "Assign certified Driver/Conductor",
+                      ),
+                      _guideStep("3", "Route Planning", "Define stops and timelines"),
+                    ],
+                  ),
+                ),
+
+              // Form Area
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(isMobile ? 24 : 60),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -90,49 +107,35 @@ class _CreateBusScreenState extends State<CreateBusScreen> {
                   children: [
                     _sectionHeader("Vehicle Information"),
                     const SizedBox(height: 32),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _textField(
-                            "BUS NUMBER",
-                            "e.g. DL-01-AB-1234",
-                            _busNoController,
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          child: _textField(
-                            "CAPACITY",
-                            "e.g. 50",
-                            _capacityController,
-                            isNumber: true,
-                          ),
-                        ),
-                      ],
-                    ),
+                    _responsiveRow(isMobile, [
+                      _textField(
+                        "BUS NUMBER",
+                        "e.g. DL-01-AB-1234",
+                        _busNoController,
+                      ),
+                      _textField(
+                        "CAPACITY",
+                        "e.g. 50",
+                        _capacityController,
+                        isNumber: true,
+                      ),
+                    ]),
                     const SizedBox(height: 48),
 
                     _sectionHeader("Staff Allocation"),
                     const SizedBox(height: 32),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _textField(
-                            "DRIVER NAME",
-                            "Full Name",
-                            _driverNameController,
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          child: _textField(
-                            "CONDUCTOR NAME",
-                            "Full Name",
-                            _conductorNameController,
-                          ),
-                        ),
-                      ],
-                    ),
+                    _responsiveRow(isMobile, [
+                      _textField(
+                        "DRIVER NAME",
+                        "Full Name",
+                        _driverNameController,
+                      ),
+                      _textField(
+                        "CONDUCTOR NAME",
+                        "Full Name",
+                        _conductorNameController,
+                      ),
+                    ]),
                     const SizedBox(height: 48),
 
                     _sectionHeader("Route Details"),
@@ -194,44 +197,83 @@ class _CreateBusScreenState extends State<CreateBusScreen> {
                     ),
 
                     const SizedBox(height: 60),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 40,
-                              vertical: 20,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text("Cancel"),
-                        ),
-                        const SizedBox(width: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              Navigator.pop(context);
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 60,
-                              vertical: 20,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                    if (isMobile)
+                      Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                if (_formKey.currentState!.validate()) {
+                                  Navigator.pop(context);
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 20),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text("Confirm & Deploy"),
                             ),
                           ),
-                          child: const Text("Confirm & Deploy"),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 20),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text("Cancel"),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 40,
+                                vertical: 20,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text("Cancel"),
+                          ),
+                          const SizedBox(width: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                Navigator.pop(context);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 60,
+                                vertical: 20,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text("Confirm & Deploy"),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -239,6 +281,31 @@ class _CreateBusScreenState extends State<CreateBusScreen> {
           ),
         ],
       ),
+    );
+  });
+  }
+
+  Widget _responsiveRow(bool isMobile, List<Widget> children) {
+    if (isMobile) {
+      return Column(
+        children: children
+            .map((c) => Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: c,
+                ))
+            .toList(),
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children
+          .map((c) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 24),
+                  child: c,
+                ),
+              ))
+          .toList(),
     );
   }
 

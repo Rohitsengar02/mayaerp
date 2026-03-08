@@ -39,27 +39,33 @@ class _CreatePayoutScreenState extends State<CreatePayoutScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6F6),
-      body: Row(
-        children: [
-          // ── LEFT: Payout Summary Panel ──
-          _buildSummaryPanel(),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 900;
+          
+          return Row(
+            children: [
+              // ── LEFT: Payout Summary Panel (Hidden on mobile) ──
+              if (!isMobile) _buildSummaryPanel(),
 
-          // ── RIGHT: Creation Form ──
-          Expanded(
-            child: Column(
-              children: [
-                _buildHeader(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(60),
-                    child: _buildPayoutForm(),
-                  ),
+              // ── RIGHT: Creation Form ──
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildHeader(isMobile),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(isMobile ? 24 : 60),
+                        child: _buildPayoutForm(isMobile),
+                      ),
+                    ),
+                    _buildFooterActions(isMobile),
+                  ],
                 ),
-                _buildFooterActions(),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -192,214 +198,253 @@ class _CreatePayoutScreenState extends State<CreatePayoutScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : 40,
+        vertical: 24,
+      ),
       color: Colors.white,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
+              if (isMobile) ...[
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                ),
+                const SizedBox(width: 8),
+              ],
               const Icon(
                 Icons.account_balance_rounded,
                 color: Colors.blueAccent,
-              ),
-              const SizedBox(width: 16),
-              Text(
-                "Transaction Vault",
-                style: AppTheme.titleStyle.copyWith(
-                  fontSize: 14,
-                  color: Colors.grey.shade500,
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Colors.grey,
                 size: 20,
               ),
+              const SizedBox(width: 12),
+              if (!isMobile) ...[
+                Text(
+                  "Vault",
+                  style: AppTheme.titleStyle.copyWith(
+                    fontSize: 13,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.grey,
+                  size: 16,
+                ),
+              ],
               Text(
                 "Payout Initiation",
                 style: AppTheme.titleStyle.copyWith(
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(100),
-            ),
-            child: const Row(
-              children: [
-                CircleAvatar(radius: 4, backgroundColor: Colors.green),
-                SizedBox(width: 10),
-                Text(
-                  "Secured Gateway Active",
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
+          if (!isMobile)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: const Row(
+                children: [
+                  CircleAvatar(radius: 4, backgroundColor: Colors.green),
+                  SizedBox(width: 10),
+                  Text(
+                    "Gateway Active",
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildPayoutForm() {
+  Widget _buildPayoutForm(bool isMobile) {
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Initiate Transfer Details",
+          Text(
+            "Finalize Transfer",
             style: TextStyle(
-              fontSize: 24,
+              fontSize: isMobile ? 22 : 24,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 12),
           Text(
-            "Fill in the student or staff member details to process payment.",
-            style: TextStyle(color: Colors.grey.shade500),
-          ),
-          const SizedBox(height: 48),
-
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _fieldLabel("SELECT STAFF / VENDOR"),
-                    _dropdownSelect(
-                      _staffList,
-                      _selectedStaff,
-                      (v) => setState(() => _selectedStaff = v),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 32),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _fieldLabel("PAYOUT CATEGORY"),
-                    _dropdownSelect(
-                      _payoutTypes,
-                      _payoutType,
-                      (v) => setState(() => _payoutType = v),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            "Verify all participant details before authorization.",
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
           ),
           const SizedBox(height: 32),
 
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _fieldLabel("TRANSACTION AMOUNT (₹)"),
-                    _textInput(
-                      "Enter Amount (e.g. 25000)",
-                      controller: _amountController,
-                      icon: Icons.currency_rupee_rounded,
-                    ),
-                  ],
+          _row(isMobile, [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _fieldLabel("SELECT STAFF / VENDOR"),
+                _dropdownSelect(
+                  _staffList,
+                  _selectedStaff,
+                  (v) => setState(() => _selectedStaff = v),
                 ),
-              ),
-              const SizedBox(width: 32),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _fieldLabel("PAYMENT MODE"),
-                    _dropdownSelect(
-                      [
-                        'Direct Bank Transfer',
-                        'UPI Payout',
-                        'Cheque / Draft',
-                        'Wallet',
-                      ],
-                      _paymentMode,
-                      (v) => setState(() => _paymentMode = v),
-                    ),
-                  ],
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _fieldLabel("PAYOUT CATEGORY"),
+                _dropdownSelect(
+                  _payoutTypes,
+                  _payoutType,
+                  (v) => setState(() => _payoutType = v),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
+              ],
+            ),
+          ]),
+          const SizedBox(height: 24),
+
+          _row(isMobile, [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _fieldLabel("TRANSACTION AMOUNT (₹)"),
+                _textInput(
+                  "Enter Amount",
+                  controller: _amountController,
+                  icon: Icons.currency_rupee_rounded,
+                ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _fieldLabel("PAYMENT MODE"),
+                _dropdownSelect(
+                  [
+                    'Direct Bank Transfer',
+                    'UPI Payout',
+                    'Cheque / Draft',
+                    'Wallet',
+                  ],
+                  _paymentMode,
+                  (v) => setState(() => _paymentMode = v),
+                ),
+              ],
+            ),
+          ]),
+          const SizedBox(height: 24),
 
           _fieldLabel("REMARKS / DESCRIPTION"),
           _textInput(
-            "Detailed description of the payout reason...",
+            "Detailed description...",
             controller: _descriptionController,
-            maxLines: 5,
+            maxLines: 4,
           ),
 
-          const SizedBox(height: 48),
+          const SizedBox(height: 32),
           _verificationToggle(),
         ],
       ),
     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.05);
   }
 
-  Widget _buildFooterActions() {
+  Widget _row(bool isMobile, List<Widget> children) {
+    if (isMobile) {
+      return Column(
+        children: children
+            .map((c) => Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: c,
+                ))
+            .toList(),
+      );
+    }
+    return Row(
+      children: children
+          .map((c) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 32),
+                  child: c,
+                ),
+              ))
+          .toList(),
+    );
+  }
+
+  Widget _buildFooterActions(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 24 : 40,
+        vertical: 32,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Color(0xFFF1F1F1))),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            "Final Step: Review and authorize transaction.",
-            style: TextStyle(
-              color: Colors.grey.shade400,
-              fontStyle: FontStyle.italic,
-              fontSize: 13,
+      child: isMobile
+          ? Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: _mainActionBtn("Authorize & Payout"),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: _secondaryBtn("Save Draft"),
+                ),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Final Step: Review and authorize transaction.",
+                  style: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontStyle: FontStyle.italic,
+                    fontSize: 13,
+                  ),
+                ),
+                Row(
+                  children: [
+                    _secondaryBtn("Save Draft"),
+                    const SizedBox(width: 16),
+                    _mainActionBtn("Authorize & Payout"),
+                  ],
+                ),
+              ],
             ),
-          ),
-          Row(
-            children: [
-              _secondaryBtn("Save Draft"),
-              const SizedBox(width: 16),
-              _mainActionBtn("Authorize & Payout"),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
   // ── HELPER WIDGETS ──
   Widget _fieldLabel(String label) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.only(bottom: 8),
     child: Text(
       label,
       style: const TextStyle(
         fontWeight: FontWeight.w900,
-        fontSize: 11,
+        fontSize: 10,
         color: Colors.grey,
-        letterSpacing: 1.2,
+        letterSpacing: 1,
       ),
     ),
   );
@@ -413,7 +458,7 @@ class _CreatePayoutScreenState extends State<CreatePayoutScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: TextField(
@@ -421,11 +466,11 @@ class _CreatePayoutScreenState extends State<CreatePayoutScreen> {
         maxLines: maxLines,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(fontSize: 14, color: Colors.grey.shade400),
+          hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
           prefixIcon: icon != null
-              ? Icon(icon, size: 20, color: Colors.blueAccent)
+              ? Icon(icon, size: 18, color: Colors.blueAccent)
               : null,
-          contentPadding: const EdgeInsets.all(20),
+          contentPadding: const EdgeInsets.all(16),
           border: InputBorder.none,
         ),
       ),
@@ -438,10 +483,10 @@ class _CreatePayoutScreenState extends State<CreatePayoutScreen> {
     Function(String?) onChanged,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: DropdownButtonHideUnderline(
@@ -455,7 +500,7 @@ class _CreatePayoutScreenState extends State<CreatePayoutScreen> {
                   child: Text(
                     e,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -470,16 +515,16 @@ class _CreatePayoutScreenState extends State<CreatePayoutScreen> {
 
   Widget _payoutInfoCard(String title, String sub, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.08)),
       ),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(width: 20),
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,15 +534,15 @@ class _CreatePayoutScreenState extends State<CreatePayoutScreen> {
                   style: TextStyle(
                     color: color,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   sub,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.5),
-                    fontSize: 11,
+                    fontSize: 10,
                   ),
                 ),
               ],
@@ -510,27 +555,27 @@ class _CreatePayoutScreenState extends State<CreatePayoutScreen> {
 
   Widget _verificationToggle() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.blue.withOpacity(0.05),
         border: Border.all(color: Colors.blue.withOpacity(0.1)),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          const Icon(Icons.shield_rounded, color: Colors.blueAccent),
-          const SizedBox(width: 20),
+          const Icon(Icons.shield_rounded, color: Colors.blueAccent, size: 20),
+          const SizedBox(width: 16),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   "Compliance Check",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 Text(
-                  "I confirm that the above payout matches the verified payroll or vendor invoice.",
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  "I confirm that the above payout matches the verified invoice.",
+                  style: TextStyle(color: Colors.grey, fontSize: 11),
                 ),
               ],
             ),
@@ -558,15 +603,15 @@ class _CreatePayoutScreenState extends State<CreatePayoutScreen> {
   Widget _backButton() => InkWell(
     onTap: () => Navigator.pop(context),
     child: Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: const Icon(
         Icons.arrow_back_ios_new_rounded,
         color: Colors.white,
-        size: 16,
+        size: 14,
       ),
     ),
   );
@@ -574,25 +619,25 @@ class _CreatePayoutScreenState extends State<CreatePayoutScreen> {
   Widget _secondaryBtn(String label) => OutlinedButton(
     onPressed: () {},
     style: OutlinedButton.styleFrom(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       side: BorderSide(color: Colors.grey.shade300),
     ),
     child: Text(
       label,
-      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
     ),
   );
 
   Widget _mainActionBtn(String label) => Container(
     decoration: BoxDecoration(
       gradient: AppColors.primaryGradient,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(12),
       boxShadow: [
         BoxShadow(
-          color: AppColors.primaryRed.withOpacity(0.25),
-          blurRadius: 20,
-          offset: const Offset(0, 10),
+          color: AppColors.primaryRed.withOpacity(0.2),
+          blurRadius: 12,
+          offset: const Offset(0, 6),
         ),
       ],
     ),
@@ -601,14 +646,15 @@ class _CreatePayoutScreenState extends State<CreatePayoutScreen> {
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.transparent,
         shadowColor: Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       child: Text(
         label,
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,
+          fontSize: 13,
         ),
       ),
     ),

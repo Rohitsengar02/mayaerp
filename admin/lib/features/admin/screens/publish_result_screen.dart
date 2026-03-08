@@ -42,33 +42,179 @@ class _PublishResultScreenState extends State<PublishResultScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F6F6),
-      body: Row(
-        children: [
-          // ── LEFT: Filters ──
-          _buildLeftPanel(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 1100;
 
-          // ── RIGHT: Results Entry ──
-          Expanded(
-            child: Column(
-              children: [
-                _buildHeader(),
-                Expanded(
-                  child: _addedResults.isEmpty
-                      ? _buildEmptyState()
-                      : _buildResultsTable(),
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F6F6),
+          body: isMobile
+              ? Column(
+                  children: [
+                    _buildMobileHeader(),
+                    Expanded(
+                      child: _addedResults.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(20),
+                              itemCount: _addedResults.length,
+                              itemBuilder: (context, index) =>
+                                  _resultCard(_addedResults[index], index),
+                            ),
+                    ),
+                    _buildFooterActions(isMobile),
+                  ],
+                )
+              : Row(
+                  children: [
+                    // ── LEFT: Filters ──
+                    _buildLeftPanel(isMobile),
+
+                    // ── RIGHT: Results Entry ──
+                    Expanded(
+                      child: Column(
+                        children: [
+                          _buildHeader(isMobile),
+                          Expanded(
+                            child: _addedResults.isEmpty
+                                ? _buildEmptyState()
+                                : _buildResultsTable(),
+                          ),
+                          _buildFooterActions(isMobile),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                _buildFooterActions(),
-              ],
-            ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMobileHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 50, 20, 24),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF1E1E2C), Color(0xFF2D2D44)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _backButton(),
+              const Spacer(),
+              const Text(
+                "Publish Results",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const Spacer(),
+              const SizedBox(width: 40),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _addStudentSearchBox(true),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _customDropdown(
+                  _depts,
+                  _selectedDept,
+                  (v) => setState(() => _selectedDept = v),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _customDropdown(
+                  _branches,
+                  _selectedBranch,
+                  (v) => setState(() => _selectedBranch = v),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLeftPanel() {
+  Widget _resultCard(Map<String, dynamic> res, int index) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    res['name'],
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  Text(
+                    "ID: ${res['id']}",
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  ),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                onPressed: () => setState(() => _addedResults.removeAt(index)),
+              ),
+            ],
+          ),
+          const Divider(height: 32),
+          Row(
+            children: [
+              _mobileMarkInput("Maths"),
+              _mobileMarkInput("Physics"),
+              _mobileMarkInput("Chem"),
+              const Spacer(),
+              _gradeBadge("B+"),
+            ],
+          ),
+        ],
+      ),
+    ).animate().fadeIn().slideY(begin: 0.1);
+  }
+
+  Widget _mobileMarkInput(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: Column(
+        children: [
+          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          const SizedBox(height: 6),
+          _marksInput(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeftPanel(bool isMobile) {
     return Container(
       width: 350,
       decoration: const BoxDecoration(
@@ -197,29 +343,30 @@ class _PublishResultScreenState extends State<PublishResultScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isMobile) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
       color: Colors.white,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _addStudentSearchBox(),
-          Row(
-            children: [
-              _actionIconBtn(Icons.file_download_outlined, "Import CSV"),
-              const SizedBox(width: 12),
-              _actionIconBtn(Icons.print_outlined, "Print Preview"),
-            ],
-          ),
+          _addStudentSearchBox(isMobile),
+          if (!isMobile)
+            Row(
+              children: [
+                _actionIconBtn(Icons.file_download_outlined, "Import CSV"),
+                const SizedBox(width: 12),
+                _actionIconBtn(Icons.print_outlined, "Print Preview"),
+              ],
+            ),
         ],
       ),
     );
   }
 
-  Widget _addStudentSearchBox() {
+  Widget _addStudentSearchBox(bool isMobile) {
     return Container(
-      width: 450,
+      width: isMobile ? double.infinity : 450,
       decoration: BoxDecoration(
         color: const Color(0xFFF8F6F6),
         borderRadius: BorderRadius.circular(16),
@@ -245,14 +392,17 @@ class _PublishResultScreenState extends State<PublishResultScreen> {
             onTap: _showStudentSelector,
             child: Container(
               margin: const EdgeInsets.all(6),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 20,
+                vertical: 12,
+              ),
               decoration: BoxDecoration(
                 gradient: AppColors.primaryGradient,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                "Add Student",
-                style: TextStyle(
+              child: Text(
+                isMobile ? "Add" : "Add Student",
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
@@ -495,9 +645,12 @@ class _PublishResultScreenState extends State<PublishResultScreen> {
     );
   }
 
-  Widget _buildFooterActions() {
+  Widget _buildFooterActions(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : 40,
+        vertical: isMobile ? 16 : 24,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Color(0xFFF1F1F1))),
@@ -505,29 +658,40 @@ class _PublishResultScreenState extends State<PublishResultScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.check_circle_outline_rounded,
-                color: Colors.green,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                "Total Students Linked: ${_addedResults.length}",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+          if (!isMobile)
+            Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_outline_rounded,
+                  color: Colors.green,
+                  size: 20,
                 ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              _secondaryBtn("Save Progress"),
-              const SizedBox(width: 16),
-              _mainActionBtn("Publish Results Now"),
-            ],
+                const SizedBox(width: 12),
+                Text(
+                  "Total Students Linked: ${_addedResults.length}",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          Expanded(
+            child: Row(
+              mainAxisAlignment:
+                  isMobile ? MainAxisAlignment.center : MainAxisAlignment.end,
+              children: [
+                if (isMobile)
+                  Expanded(child: _secondaryBtn("Save"))
+                else
+                  _secondaryBtn("Save Progress"),
+                const SizedBox(width: 16),
+                if (isMobile)
+                  Expanded(child: _mainActionBtn("Publish"))
+                else
+                  _mainActionBtn("Publish Results Now"),
+              ],
+            ),
           ),
         ],
       ),

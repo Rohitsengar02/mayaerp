@@ -119,30 +119,127 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       'Admins': _users.where((u) => u['role'] == 'Admin').length,
     };
 
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 1100;
+        final isNarrow = constraints.maxWidth < 600;
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F6F6),
+          body: Column(
+            children: [
+              // ── TOPBAR ──
+              _buildHeader(context, isMobile),
+
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(isMobile ? 20 : 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── STATS ROW ──
+                      _buildStatsRow(stats, isMobile),
+                      SizedBox(height: isMobile ? 24 : 32),
+
+                      // ── FILTERS ──
+                      _buildFilters(isMobile),
+                      SizedBox(height: isMobile ? 24 : 32),
+
+                      // ── USER CARDS GRID ──
+                      _buildUsersGrid(isMobile, isNarrow),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, bool isMobile) {
     return Container(
-      color: const Color(0xFFF8F6F6),
-      child: Column(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : 40,
+        vertical: isMobile ? 20 : 24,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFF1F1F1))),
+      ),
+      child: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Users",
+                      style: AppTheme.titleStyle.copyWith(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    _mobileActionBtn(context),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _searchBox(double.infinity),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "User Management",
+                      style: AppTheme.titleStyle.copyWith(fontSize: 28),
+                    ),
+                    Text(
+                      "Manage all portal accounts and permissions",
+                      style:
+                          TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    _searchBox(250),
+                    const SizedBox(width: 16),
+                    _createBtn(context),
+                  ],
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _searchBox(double width) {
+    return Container(
+      width: width,
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
         children: [
-          // ── TOPBAR ──
-          _buildHeader(context),
-
+          const SizedBox(width: 14),
+          Icon(Icons.search, color: Colors.grey.shade500, size: 20),
+          const SizedBox(width: 8),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── STATS ROW ──
-                  _buildStatsRow(stats),
-                  const SizedBox(height: 32),
-
-                  // ── FILTERS ──
-                  _buildFilters(),
-                  const SizedBox(height: 32),
-
-                  // ── USER CARDS GRID ──
-                  _buildUsersGrid(),
-                ],
+            child: TextField(
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: "Search users...",
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 14,
+                ),
               ),
             ),
           ),
@@ -151,111 +248,69 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _createBtn(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFF1F1F1))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "User Management",
-                style: AppTheme.titleStyle.copyWith(fontSize: 28),
-              ),
-              Text(
-                "Manage all portal accounts and permissions",
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              // Search
-              Container(
-                width: 250,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 14),
-                    Icon(Icons.search, color: Colors.grey.shade500, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          hintText: "Search users...",
-                          hintStyle: TextStyle(
-                            color: Colors.grey.shade400,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Create button
-              Container(
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryRed.withValues(alpha: 0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    _slideRoute(const CreateUserScreen()),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: const Icon(
-                    Icons.person_add_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  label: const Text(
-                    "Create New User",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryRed.withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
           ),
         ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: () => Navigator.push(
+          context,
+          _slideRoute(const CreateUserScreen()),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 14,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        icon: const Icon(
+          Icons.person_add_rounded,
+          color: Colors.white,
+          size: 18,
+        ),
+        label: const Text(
+          "Create New User",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildStatsRow(Map<String, int> stats) {
+  Widget _mobileActionBtn(BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        _slideRoute(const CreateUserScreen()),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: AppColors.primaryGradient,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+      ),
+    );
+  }
+
+  Widget _buildStatsRow(Map<String, int> stats, bool isMobile) {
     final colors = [
       AppColors.primaryRed,
       Colors.green,
@@ -269,13 +324,30 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       Icons.admin_panel_settings_rounded,
     ];
 
+    if (isMobile) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: List.generate(stats.length, (i) {
+            final key = stats.keys.elementAt(i);
+            return Container(
+              width: 180,
+              margin: EdgeInsets.only(right: i < stats.length - 1 ? 16 : 0),
+              child: _statCard(key, stats[key]!, icons[i], colors[i], i, true),
+            );
+          }),
+        ),
+      );
+    }
+
     return Row(
       children: List.generate(stats.length, (i) {
         final key = stats.keys.elementAt(i);
         return Expanded(
           child: Padding(
             padding: EdgeInsets.only(right: i < stats.length - 1 ? 20 : 0),
-            child: _statCard(key, stats[key]!, icons[i], colors[i], i),
+            child: _statCard(key, stats[key]!, icons[i], colors[i], i, false),
           ),
         );
       }),
@@ -288,9 +360,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     IconData icon,
     Color color,
     int index,
+    bool isMobile,
   ) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 18 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -305,21 +378,21 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(isMobile ? 10 : 14),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 24),
+            child: Icon(icon, color: color, size: isMobile ? 18 : 24),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 value.toString(),
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: isMobile ? 22 : 28,
                   fontWeight: FontWeight.w900,
                   color: color,
                   height: 1,
@@ -328,8 +401,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               const SizedBox(height: 4),
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 13,
+                style: TextStyle(
+                  fontSize: isMobile ? 10 : 13,
                   fontWeight: FontWeight.bold,
                   color: Colors.grey,
                 ),
@@ -341,84 +414,102 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     ).animate(delay: (index * 80).ms).fadeIn().slideY(begin: 0.2);
   }
 
-  Widget _buildFilters() {
-    return Row(
+  Widget _buildFilters(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Filter by Role:",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: Colors.grey,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Wrap(
-          spacing: 10,
-          children: _filters.map((f) {
-            final isSelected = _selectedFilter == f;
-            return GestureDetector(
-              onTap: () => setState(() => _selectedFilter = f),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primaryRed : Colors.white,
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColors.primaryRed
-                        : Colors.grey.shade200,
-                    width: 1.5,
-                  ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: AppColors.primaryRed.withValues(alpha: 0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ]
-                      : [],
-                ),
-                child: Text(
-                  f,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.grey.shade600,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    fontSize: 13,
-                  ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Filter by Role:",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
+            if (isMobile)
+              Text(
+                "${_filtered.length} users",
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
                 ),
               ),
-            );
-          }).toList(),
+          ],
         ),
-        const Spacer(),
-        Text(
-          "${_filtered.length} user${_filtered.length != 1 ? 's' : ''}",
-          style: TextStyle(
-            color: Colors.grey.shade500,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
+        const SizedBox(height: 16),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: _filters.map((f) {
+              final isSelected = _selectedFilter == f;
+              return Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: GestureDetector(
+                  onTap: () => setState(() => _selectedFilter = f),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.primaryRed : Colors.white,
+                      borderRadius: BorderRadius.circular(100),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primaryRed
+                            : Colors.grey.shade200,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Text(
+                      f,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.grey.shade600,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ),
+        if (!isMobile) ...[
+          const SizedBox(height: 32),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              "${_filtered.length} user${_filtered.length != 1 ? 's' : ''}",
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildUsersGrid() {
+  Widget _buildUsersGrid(bool isMobile, bool isNarrow) {
     final users = _filtered;
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        childAspectRatio: 0.78,
-        crossAxisSpacing: 20,
-        mainAxisSpacing: 20,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: isNarrow ? 1 : (isMobile ? 2 : 4),
+        childAspectRatio: isMobile ? 0.82 : 0.95,
+        crossAxisSpacing: isMobile ? 16 : 20,
+        mainAxisSpacing: isMobile ? 16 : 20,
       ),
       itemCount: users.length,
       itemBuilder: (context, index) => _userCard(users[index], index),

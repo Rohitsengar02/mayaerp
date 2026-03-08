@@ -35,36 +35,66 @@ class _IssueBookScreenState extends State<IssueBookScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F6F6),
-      body: Row(
-        children: [
-          // ── LEFT: Library Policy Sidebar ──
-          _buildPolicySidebar(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 1100;
 
-          // ── RIGHT: Issue Form ──
-          Expanded(
-            child: Column(
-              children: [
-                _buildHeader(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(60),
-                    child: _buildIssueForm(),
-                  ),
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F6F6),
+          body: isMobile
+              ? Column(
+                  children: [
+                    _buildPolicySidebar(isMobile),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          _buildHeader(isMobile),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 40,
+                              ),
+                              child: _buildIssueForm(isMobile),
+                            ),
+                          ),
+                          _buildFooterActions(isMobile),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    // ── LEFT: Library Policy Sidebar ──
+                    _buildPolicySidebar(isMobile),
+
+                    // ── RIGHT: Issue Form ──
+                    Expanded(
+                      child: Column(
+                        children: [
+                          _buildHeader(isMobile),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.all(60),
+                              child: _buildIssueForm(isMobile),
+                            ),
+                          ),
+                          _buildFooterActions(isMobile),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                _buildFooterActions(),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildPolicySidebar() {
+  Widget _buildPolicySidebar(bool isMobile) {
     return Container(
-      width: 380,
+      width: isMobile ? double.infinity : 380,
+      padding: EdgeInsets.only(top: isMobile ? 40 : 0),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF1E1B4B), Color(0xFF312E81)],
@@ -79,58 +109,73 @@ class _IssueBookScreenState extends State<IssueBookScreen> {
             right: -50,
             child: Icon(
               Icons.library_books_rounded,
-              size: 200,
-              color: Colors.white.withValues(alpha: 0.03),
+              size: isMobile ? 150 : 200,
+              color: Colors.white.withOpacity(0.03),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(48),
+            padding: EdgeInsets.all(isMobile ? 24 : 48),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 _backButton(),
-                const SizedBox(height: 60),
-                const Text(
+                SizedBox(height: isMobile ? 32 : 60),
+                Text(
                   "Issue Book Vault",
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
-                    fontSize: 34,
+                    fontSize: isMobile ? 26 : 34,
                     letterSpacing: -1.2,
                     height: 1.1,
                   ),
                 ),
                 const SizedBox(height: 20),
-                Text(
-                  "Lending transactions must comply with institute library policies. Ensure valid student ID verification before submission.",
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 14,
-                    height: 1.5,
+                if (!isMobile)
+                  Text(
+                    "Lending transactions must comply with institute library policies. Ensure valid student ID verification before submission.",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 60),
+                if (!isMobile) const SizedBox(height: 60),
 
-                _policyItem(
-                  "Standard Loan Period",
-                  "Students: 15 Days | Faculty: 45 Days",
-                  Icons.calendar_today_rounded,
-                ),
-                const SizedBox(height: 24),
-                _policyItem(
-                  "Late Return Fine",
-                  "₹10 per delay day after due date",
-                  Icons.gavel_rounded,
-                ),
-                const SizedBox(height: 24),
-                _policyItem(
-                  "Maximum Limit",
-                  "Up to 5 books at a time per student",
-                  Icons.warning_amber_rounded,
-                ),
+                if (!isMobile) ...[
+                  _policyItem(
+                    "Standard Loan Period",
+                    "Students: 15 Days | Faculty: 45 Days",
+                    Icons.calendar_today_rounded,
+                  ),
+                  const SizedBox(height: 24),
+                  _policyItem(
+                    "Late Return Fine",
+                    "₹10 per delay day after due date",
+                    Icons.gavel_rounded,
+                  ),
+                  const SizedBox(height: 24),
+                  _policyItem(
+                    "Maximum Limit",
+                    "Up to 5 books at a time per student",
+                    Icons.warning_amber_rounded,
+                  ),
+                ],
 
-                const Spacer(),
-                _libStatsSmall(),
+                if (!isMobile) const Spacer(),
+                if (!isMobile) _libStatsSmall(),
+                if (isMobile) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _miniStat("Total Stock", "22.4K"),
+                      _miniStat("Issued", "1.8K"),
+                      _miniStat("Available", "20.6K"),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -211,25 +256,30 @@ class _IssueBookScreenState extends State<IssueBookScreen> {
     ],
   );
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 24 : 40,
+        vertical: 24,
+      ),
       color: Colors.white,
       child: Row(
         children: [
           const Icon(Icons.auto_stories_rounded, color: AppColors.primaryRed),
           const SizedBox(width: 16),
+          if (!isMobile)
+            Text(
+              "Library Circulation",
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+            ),
+          if (!isMobile)
+            const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
           Text(
-            "Library Circulation",
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+            isMobile ? "Issue New Book" : "New Lending Transaction",
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
-          const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
-          const Text(
-            "New Lending Transaction",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          const Spacer(),
-          _availabilityBadge("Stock Synchronized"),
+          if (!isMobile) const Spacer(),
+          if (!isMobile) _availabilityBadge("Stock Synchronized"),
         ],
       ),
     );
@@ -259,16 +309,16 @@ class _IssueBookScreenState extends State<IssueBookScreen> {
     );
   }
 
-  Widget _buildIssueForm() {
+  Widget _buildIssueForm(bool isMobile) {
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "Lending Details",
             style: TextStyle(
-              fontSize: 28,
+              fontSize: isMobile ? 22 : 28,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.5,
             ),
@@ -276,33 +326,48 @@ class _IssueBookScreenState extends State<IssueBookScreen> {
           const SizedBox(height: 8),
           Text(
             "Select the student and book details below to process the issue request.",
-            style: TextStyle(color: Colors.grey.shade500),
+            style: TextStyle(color: Colors.grey.shade500, fontSize: isMobile ? 12 : 14),
           ),
-          const SizedBox(height: 48),
+          SizedBox(height: isMobile ? 32 : 48),
 
           _sectionTitle("1. Student Selection"),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _dropdownField(
-                  "BRANCH",
-                  _branches,
-                  _selectedBranch,
-                  (v) => setState(() => _selectedBranch = v),
+          if (isMobile) ...[
+            _dropdownField(
+              "BRANCH",
+              _branches,
+              _selectedBranch,
+              (v) => setState(() => _selectedBranch = v),
+            ),
+            const SizedBox(height: 20),
+            _dropdownField(
+              "SECTION",
+              _sections,
+              _selectedSection,
+              (v) => setState(() => _selectedSection = v),
+            ),
+          ] else
+            Row(
+              children: [
+                Expanded(
+                  child: _dropdownField(
+                    "BRANCH",
+                    _branches,
+                    _selectedBranch,
+                    (v) => setState(() => _selectedBranch = v),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: _dropdownField(
-                  "SECTION",
-                  _sections,
-                  _selectedSection,
-                  (v) => setState(() => _selectedSection = v),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: _dropdownField(
+                    "SECTION",
+                    _sections,
+                    _selectedSection,
+                    (v) => setState(() => _selectedSection = v),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           const SizedBox(height: 24),
           _dropdownField(
             "SEARCH STUDENT",
@@ -311,7 +376,7 @@ class _IssueBookScreenState extends State<IssueBookScreen> {
             (v) => setState(() => _selectedStudent = v),
           ),
 
-          const SizedBox(height: 48),
+          SizedBox(height: isMobile ? 32 : 48),
           _sectionTitle("2. Book Details"),
           const SizedBox(height: 20),
           _inputField(
@@ -320,15 +385,20 @@ class _IssueBookScreenState extends State<IssueBookScreen> {
             (v) => _selectedBook = v,
           ),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(child: _datePickerField("ISSUE DATE", "Mar 05, 2026")),
-              const SizedBox(width: 24),
-              Expanded(
-                child: _datePickerField("RETURN DEADLINE", "Mar 20, 2026"),
-              ),
-            ],
-          ),
+          if (isMobile) ...[
+            _datePickerField("ISSUE DATE", "Mar 05, 2026"),
+            const SizedBox(height: 20),
+            _datePickerField("RETURN DEADLINE", "Mar 20, 2026"),
+          ] else
+            Row(
+              children: [
+                Expanded(child: _datePickerField("ISSUE DATE", "Mar 05, 2026")),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: _datePickerField("RETURN DEADLINE", "Mar 20, 2026"),
+                ),
+              ],
+            ),
         ],
       ),
     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.05);
@@ -477,49 +547,94 @@ class _IssueBookScreenState extends State<IssueBookScreen> {
     );
   }
 
-  Widget _buildFooterActions() {
+  Widget _buildFooterActions(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 24 : 40,
+        vertical: isMobile ? 24 : 32,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Color(0xFFF1F1F1))),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Row(
-            children: [
-              Icon(Icons.info_outline_rounded, color: Colors.grey, size: 16),
-              SizedBox(width: 12),
-              Text(
-                "E-Receipt will be shared with the student automatically.",
-                style: TextStyle(color: Colors.grey, fontSize: 12),
+          if (isMobile)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 20),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: Colors.grey, size: 16),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "E-Receipt will be shared with the student automatically.",
+                      style: TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 20,
+              if (!isMobile)
+                const Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, color: Colors.grey, size: 16),
+                    SizedBox(width: 12),
+                    Text(
+                      "E-Receipt will be shared with the student automatically.",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                ),
+              if (isMobile)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {},
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      "Reset",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                )
+              else
+                OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 20,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    "Reset",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                child: const Text(
-                  "Reset",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
               const SizedBox(width: 16),
-              _mainBtn("Confirm Issue"),
+              if (isMobile)
+                Expanded(child: _mainBtn("Confirm Issue", isMobile))
+              else
+                _mainBtn("Confirm Issue", isMobile),
             ],
           ),
         ],
@@ -527,7 +642,7 @@ class _IssueBookScreenState extends State<IssueBookScreen> {
     );
   }
 
-  Widget _mainBtn(String l) {
+  Widget _mainBtn(String l, bool isMobile) {
     return Container(
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
@@ -545,16 +660,20 @@ class _IssueBookScreenState extends State<IssueBookScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 0 : 40,
+            vertical: isMobile ? 18 : 20,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
         ),
         child: Text(
           l,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
+            fontSize: isMobile ? 13 : 14,
           ),
         ),
       ),

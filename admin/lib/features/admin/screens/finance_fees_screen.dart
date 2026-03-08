@@ -29,85 +29,145 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFF8F6F6),
-      child: Column(
-        children: [
-          _buildTopBar(),
-          _buildSubHeader(),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [_buildFeesTab(), _buildPayoutsTab()],
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isMobile = width < 900;
+        final isNarrow = width < 600;
+
+        return Container(
+          color: const Color(0xFFF8F6F6),
+          child: Column(
+            children: [
+              _buildTopBar(isMobile),
+              _buildSubHeader(isMobile),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildFeesTab(isMobile, isNarrow),
+                    _buildPayoutsTab(isMobile, isNarrow)
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildTopBar() {
+  Widget _buildTopBar(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : 40,
+        vertical: isMobile ? 20 : 24,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF1F1F1))),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Financial Control",
-                style: AppTheme.titleStyle.copyWith(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
+      child: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Financial Control",
+                  style: AppTheme.titleStyle.copyWith(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "Monitor revenue, outstanding dues, and staff payouts in real-time.",
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              _actionButton(
-                Icons.add_card_rounded,
-                "New Fee Group",
-                Colors.white,
-                AppColors.primaryRed,
-                () {},
-              ),
-              const SizedBox(width: 14),
-              _actionButton(
-                Icons.payments_rounded,
-                "Initiate Payout",
-                AppColors.primaryRed,
-                Colors.white,
-                () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const CreatePayoutScreen(),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _actionButton(
+                        Icons.add_card_rounded,
+                        "New Fee",
+                        Colors.white,
+                        AppColors.primaryRed,
+                        () {},
+                        isMobile: true,
+                      ),
                     ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _actionButton(
+                        Icons.payments_rounded,
+                        "Payout",
+                        AppColors.primaryRed,
+                        Colors.white,
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CreatePayoutScreen(),
+                            ),
+                          );
+                        },
+                        isMobile: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Financial Control",
+                      style: AppTheme.titleStyle.copyWith(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Monitor revenue, outstanding dues, and staff payouts in real-time.",
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    _actionButton(
+                      Icons.add_card_rounded,
+                      "New Fee Group",
+                      Colors.white,
+                      AppColors.primaryRed,
+                      () {},
+                    ),
+                    const SizedBox(width: 14),
+                    _actionButton(
+                      Icons.payments_rounded,
+                      "Initiate Payout",
+                      AppColors.primaryRed,
+                      Colors.white,
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CreatePayoutScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 
-  Widget _buildSubHeader() {
+  Widget _buildSubHeader(bool isMobile) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 40),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 20 : 40),
       child: Row(
         children: [
           _tabItem("Revenue & Fees", 0),
@@ -123,7 +183,7 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
       onTap: () => setState(() => _tabController.animateTo(index)),
       child: AnimatedContainer(
         duration: 300.ms,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
@@ -135,7 +195,7 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
         child: Text(
           title,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
             color: isSelected ? AppColors.primaryRed : Colors.grey.shade500,
           ),
@@ -144,35 +204,67 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
     );
   }
 
-  Widget _buildFeesTab() {
+  Widget _buildFeesTab(bool isMobile, bool isNarrow) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 16 : 32),
       child: Column(
         children: [
-          _buildFinanceOverview(),
-          const SizedBox(height: 32),
-          _buildRecentTransactions("Recent Fee Success"),
-          const SizedBox(height: 32),
-          _buildFeeStructureGrid(),
+          _buildFinanceOverview(isMobile, isNarrow),
+          const SizedBox(height: 24),
+          _buildRecentTransactions("Recent Fee Success", isMobile),
+          const SizedBox(height: 24),
+          _buildFeeStructureGrid(isMobile, isNarrow),
         ],
       ),
     );
   }
 
-  Widget _buildPayoutsTab() {
+  Widget _buildPayoutsTab(bool isMobile, bool isNarrow) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 16 : 32),
       child: Column(
         children: [
-          _buildPayoutOverview(),
-          const SizedBox(height: 32),
-          _buildRecentTransactions("Recent Salary & Vendor Payouts"),
+          _buildPayoutOverview(isMobile, isNarrow),
+          const SizedBox(height: 24),
+          _buildRecentTransactions("Recent Salary & Vendor Payouts", isMobile),
         ],
       ),
     );
   }
 
-  Widget _buildFinanceOverview() {
+  Widget _buildFinanceOverview(bool isMobile, bool isNarrow) {
+    if (isNarrow) {
+      return Column(
+        children: [
+          _financeCard(
+            "Total Receivable",
+            "₹12.4M",
+            "+8.2% vs LW",
+            Icons.account_balance_rounded,
+            [const Color(0xFF6366F1), const Color(0xFF818CF8)],
+            isMobile: true,
+          ),
+          const SizedBox(height: 16),
+          _financeCard(
+            "Total Collected",
+            "₹8.2M",
+            "66% Target Met",
+            Icons.check_circle_rounded,
+            [const Color(0xFF10B981), const Color(0xFF34D399)],
+            isMobile: true,
+          ),
+          const SizedBox(height: 16),
+          _financeCard(
+            "Outstanding Dues",
+            "₹4.2M",
+            "1,240 Students",
+            Icons.warning_rounded,
+            [const Color(0xFFEC1349), const Color(0xFFFF6B6B)],
+            isMobile: true,
+          ),
+        ],
+      ).animate().fadeIn().slideY(begin: 0.1);
+    }
     return Row(
       children: [
         Expanded(
@@ -182,9 +274,10 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
             "+8.2% vs LW",
             Icons.account_balance_rounded,
             [const Color(0xFF6366F1), const Color(0xFF818CF8)],
+            isMobile: isMobile,
           ),
         ),
-        const SizedBox(width: 20),
+        const SizedBox(width: 16),
         Expanded(
           child: _financeCard(
             "Total Collected",
@@ -192,9 +285,10 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
             "66% Target Met",
             Icons.check_circle_rounded,
             [const Color(0xFF10B981), const Color(0xFF34D399)],
+            isMobile: isMobile,
           ),
         ),
-        const SizedBox(width: 20),
+        const SizedBox(width: 16),
         Expanded(
           child: _financeCard(
             "Outstanding Dues",
@@ -202,13 +296,46 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
             "1,240 Students",
             Icons.warning_rounded,
             [const Color(0xFFEC1349), const Color(0xFFFF6B6B)],
+            isMobile: isMobile,
           ),
         ),
       ],
     ).animate().fadeIn().slideY(begin: 0.1);
   }
 
-  Widget _buildPayoutOverview() {
+  Widget _buildPayoutOverview(bool isMobile, bool isNarrow) {
+    if (isNarrow) {
+      return Column(
+        children: [
+          _financeCard(
+            "Salary Payouts",
+            "₹48.5L",
+            "March 2026",
+            Icons.person_pin_rounded,
+            [const Color(0xFFF59E0B), const Color(0xFFFBBF24)],
+            isMobile: true,
+          ),
+          const SizedBox(height: 16),
+          _financeCard(
+            "Vendor Payments",
+            "₹12.2L",
+            "14 Pending",
+            Icons.shopping_bag_rounded,
+            [const Color(0xFF3B82F6), const Color(0xFF60A5FA)],
+            isMobile: true,
+          ),
+          const SizedBox(height: 16),
+          _financeCard(
+            "Utility Bills",
+            "₹1.4L",
+            "Due in 3 days",
+            Icons.bolt_rounded,
+            [const Color(0xFF8B5CF6), const Color(0xFFA78BFA)],
+            isMobile: true,
+          ),
+        ],
+      ).animate().fadeIn().slideY(begin: 0.1);
+    }
     return Row(
       children: [
         Expanded(
@@ -218,9 +345,10 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
             "March 2026",
             Icons.person_pin_rounded,
             [const Color(0xFFF59E0B), const Color(0xFFFBBF24)],
+            isMobile: isMobile,
           ),
         ),
-        const SizedBox(width: 20),
+        const SizedBox(width: 16),
         Expanded(
           child: _financeCard(
             "Vendor Payments",
@@ -228,9 +356,10 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
             "14 Pending",
             Icons.shopping_bag_rounded,
             [const Color(0xFF3B82F6), const Color(0xFF60A5FA)],
+            isMobile: isMobile,
           ),
         ),
-        const SizedBox(width: 20),
+        const SizedBox(width: 16),
         Expanded(
           child: _financeCard(
             "Utility Bills",
@@ -238,6 +367,7 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
             "Due in 3 days",
             Icons.bolt_rounded,
             [const Color(0xFF8B5CF6), const Color(0xFFA78BFA)],
+            isMobile: isMobile,
           ),
         ),
       ],
@@ -249,10 +379,11 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
     String value,
     String sub,
     IconData icon,
-    List<Color> colors,
-  ) {
+    List<Color> colors, {
+    bool isMobile = false,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 20 : 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: colors,
@@ -275,44 +406,44 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: Colors.white, size: 24),
+                child: Icon(icon, color: Colors.white, size: 20),
               ),
               const Icon(
                 Icons.trending_up_rounded,
                 color: Colors.white60,
-                size: 20,
+                size: 16,
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 32,
+              fontSize: isMobile ? 24 : 28,
               fontWeight: FontWeight.w900,
               letterSpacing: -1,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             title,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+            style: const TextStyle(
+              color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 13,
+              fontSize: 12,
             ),
           ),
           Text(
             sub,
             style: TextStyle(
               color: Colors.white.withOpacity(0.6),
-              fontSize: 11,
+              fontSize: 10,
             ),
           ),
         ],
@@ -320,7 +451,7 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
     );
   }
 
-  Widget _buildRecentTransactions(String title) {
+  Widget _buildRecentTransactions(String title, bool isMobile) {
     final List<Map<String, dynamic>> txns = [
       {
         "name": "Rahul Gupta",
@@ -357,7 +488,7 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
     ];
 
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 20 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -369,30 +500,33 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  "Export Ledger",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+              if (!isMobile)
+                TextButton(
+                  onPressed: () {},
+                  child: const Text(
+                    "Export Ledger",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
             ],
           ),
-          const SizedBox(height: 24),
-          ...txns.map((t) => _txnListRow(t)).toList(),
+          const SizedBox(height: 16),
+          ...txns.map((t) => _txnListRow(t, isMobile)).toList(),
         ],
       ),
     );
   }
 
-  Widget _txnListRow(Map<String, dynamic> t) {
+  Widget _txnListRow(Map<String, dynamic> t, bool isMobile) {
     Color statusColor = t['status'] == 'Success'
         ? Colors.green
         : (t['status'] == 'Pending' ? Colors.orange : Colors.red);
@@ -404,15 +538,15 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
       child: Row(
         children: [
           Container(
-            width: 45,
-            height: 45,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: statusColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.receipt_rounded, color: statusColor, size: 20),
+            child: Icon(Icons.receipt_rounded, color: statusColor, size: 18),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,12 +555,12 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
                   t['name'],
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 ),
                 Text(
                   t['ref'],
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 10),
                 ),
               ],
             ),
@@ -438,59 +572,53 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
                 t['amount'],
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
-                  fontSize: 15,
-                  letterSpacing: -0.5,
+                  fontSize: 13,
                 ),
               ),
-              Text(
-                t['date'],
-                style: TextStyle(color: Colors.grey.shade400, fontSize: 10),
-              ),
+              if (!isMobile)
+                Text(
+                  t['status'],
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
+                ),
             ],
           ),
-          const SizedBox(width: 48),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(8),
+          if (!isMobile) ...[
+            const SizedBox(width: 24),
+            Text(
+              t['date'],
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 10),
             ),
-            child: Text(
-              t['status'].toUpperCase(),
-              style: TextStyle(
-                color: statusColor,
-                fontWeight: FontWeight.w900,
-                fontSize: 10,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          const SizedBox(width: 24),
-          _iconAction(Icons.more_vert_rounded),
+            const SizedBox(width: 16),
+            _iconAction(Icons.more_vert_rounded),
+          ],
         ],
       ),
-    ).animate().fadeIn().slideY(begin: 0.05);
+    ).animate().fadeIn().slideX(begin: 0.05);
   }
 
-  Widget _buildFeeStructureGrid() {
+  Widget _buildFeeStructureGrid(bool isMobile, bool isNarrow) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           "Fee Frameworks",
           style: AppTheme.titleStyle.copyWith(
-            fontSize: 24,
+            fontSize: 22,
             fontWeight: FontWeight.w900,
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         GridView.count(
-          crossAxisCount: 2,
+          crossAxisCount: isNarrow ? 1 : 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 20,
-          crossAxisSpacing: 20,
-          childAspectRatio: 3.5,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: isNarrow ? 4 : (isMobile ? 2.5 : 3.5),
           children: [
             _frameworkCard(
               "B.Tech CSE - 2024",
@@ -510,27 +638,27 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
 
   Widget _frameworkCard(String head, String cost, String schedule) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFF1F1F1)),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: AppColors.primaryRed.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
               Icons.layers_rounded,
               color: AppColors.primaryRed,
-              size: 20,
+              size: 18,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,7 +668,7 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
                   head,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 12,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -549,7 +677,7 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
                   style: const TextStyle(
                     color: Colors.green,
                     fontWeight: FontWeight.w900,
-                    fontSize: 12,
+                    fontSize: 11,
                   ),
                 ),
               ],
@@ -565,22 +693,28 @@ class _FinanceFeesScreenState extends State<FinanceFeesScreen>
     String label,
     Color bg,
     Color fg,
-    VoidCallback onTap,
-  ) {
-    return ElevatedButton.icon(
+    VoidCallback onTap, {
+    bool isMobile = false,
+  }) {
+    return ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
         backgroundColor: bg,
         foregroundColor: fg,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        elevation: bg == Colors.white ? 0 : 4,
-        shadowColor: AppColors.primaryRed.withOpacity(0.3),
+        padding: EdgeInsets.symmetric(vertical: isMobile ? 18 : 20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: bg == Colors.white ? 0 : 2,
       ),
-      icon: Icon(icon, size: 18),
-      label: Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 16),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+        ],
       ),
     );
   }

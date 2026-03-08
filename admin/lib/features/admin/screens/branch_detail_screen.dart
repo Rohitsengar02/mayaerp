@@ -80,23 +80,36 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        bool isMobile = constraints.maxWidth < 1100;
-        double sidePadding = isMobile ? 20 : 40;
+        final width = constraints.maxWidth;
+        final isMobile = width < 700;
+        final isTablet = width >= 700 && width < 1050;
+        final isDesktop = width >= 1050;
+
+        int crossAxisCount = 1;
+        if (isTablet) crossAxisCount = 2;
+        if (isDesktop) crossAxisCount = 3;
+
+        double childAspectRatio = 0.8;
+        if (isTablet) childAspectRatio = 0.95;
+        if (isDesktop) childAspectRatio = 1.05;
+        if (width > 1400) childAspectRatio = 1.2;
+
+        double sidePadding = width < 1100 ? 20 : 40;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF8F6F6),
           body: Column(
             children: [
-              _buildHeader(isMobile),
+              _buildHeader(width < 1100),
               Expanded(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.all(sidePadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildBranchBanner(isMobile),
-                      SizedBox(height: isMobile ? 32 : 60),
-                      if (isMobile)
+                      _buildBranchBanner(width < 1100),
+                      SizedBox(height: width < 1100 ? 32 : 60),
+                      if (width < 1100)
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -109,7 +122,7 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            _searchBar(isMobile),
+                            _searchBar(true),
                           ],
                         )
                       else
@@ -124,11 +137,11 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                                 letterSpacing: -0.5,
                               ),
                             ),
-                            _searchBar(isMobile),
+                            _searchBar(false),
                           ],
                         ),
                       const SizedBox(height: 32),
-                      _buildCourseGrid(isMobile),
+                      _buildCourseGrid(width, crossAxisCount, childAspectRatio),
                     ],
                   ),
                 ),
@@ -476,30 +489,37 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
     );
   }
 
-  Widget _buildCourseGrid(bool isMobile) {
+  Widget _buildCourseGrid(
+    double width,
+    int crossAxisCount,
+    double childAspectRatio,
+  ) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isMobile ? 1 : 3,
-        mainAxisSpacing: isMobile ? 20 : 32,
-        crossAxisSpacing: isMobile ? 20 : 32,
-        childAspectRatio: isMobile ? 1.0 : 1.2,
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: width < 1100 ? 20 : 32,
+        crossAxisSpacing: width < 1100 ? 20 : 32,
+        childAspectRatio: childAspectRatio,
       ),
       itemCount: _courses.length,
-      itemBuilder: (context, i) => _courseCard(_courses[i], i, isMobile),
+      itemBuilder: (context, i) => _courseCard(_courses[i], i, width),
     );
   }
 
-  Widget _courseCard(Map<String, dynamic> course, int i, bool isMobile) {
+  Widget _courseCard(Map<String, dynamic> course, int i, double width) {
+    final isDesktop = width >= 1050;
+    final isMobile = width < 700;
+
     return InkWell(
       onTap: () => setState(() => _selectedCourse = course),
-      borderRadius: BorderRadius.circular(32),
+      borderRadius: BorderRadius.circular(24),
       child: Container(
-        padding: EdgeInsets.all(isMobile ? 24 : 32),
+        padding: EdgeInsets.all(isDesktop ? 28 : 20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Colors.black.withOpacity(0.04)),
           boxShadow: [
             BoxShadow(
@@ -515,8 +535,8 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
             Row(
               children: [
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: isDesktop ? 64 : 56,
+                  height: isDesktop ? 64 : 56,
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8F6F6),
                     borderRadius: BorderRadius.circular(16),
@@ -526,7 +546,7 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 20),
+                SizedBox(width: isDesktop ? 20 : 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -552,11 +572,12 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                       const SizedBox(height: 8),
                       Text(
                         course['name'],
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w900,
-                          fontSize: 17,
+                          fontSize: isDesktop ? 18 : 16,
+                          height: 1.2,
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -564,7 +585,7 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Row(
               children: [
                 _infoRow(Icons.timer_outlined, course['duration']),
@@ -572,9 +593,9 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                 _statusBadge(course['status']),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             const Divider(height: 1, color: Color(0xFFF1F1F1)),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -601,7 +622,7 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
               child: TextButton(
                 onPressed: () {},
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   backgroundColor: const Color(0xFFF8F6F6),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -611,7 +632,7 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                   "View Curriculum",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 12,
                     color: Colors.black,
                   ),
                 ),
@@ -620,7 +641,7 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
           ],
         ),
       ),
-    ).animate().fadeIn(delay: (i * 100).ms);
+    ).animate().fadeIn(delay: (i * 50).ms).scale(begin: const Offset(0.98, 0.98));
   }
 
   Widget _miniDetail(IconData icon, String label, String val) {

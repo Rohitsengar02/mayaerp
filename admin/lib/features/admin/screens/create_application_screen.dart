@@ -52,109 +52,105 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F6F6),
-      body: Row(
-        children: [
-          // ── LEFT GRADIENT PANEL (fixed width, no overflow) ──
-          SizedBox(
-            width: 320,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFF6B0F3A),
-                    Color(0xFFEC1349),
-                    Color(0xFFFF6B6B),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(top: -60, right: -60, child: _blob(220, 0.06)),
-                  Positioned(bottom: -80, left: -40, child: _blob(260, 0.05)),
-                  Column(
-                    children: [
-                      // Top area: back + photo
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(28, 48, 28, 0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _backButton(context),
-                            const SizedBox(height: 32),
-                            _photoUpload(),
-                            const SizedBox(height: 32),
-                            _buildStepper(),
-                          ],
-                        ),
-                      ),
-                      // Spacer takes remaining space
-                      const Spacer(),
-                      // Info tiles pinned at bottom
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(28, 0, 28, 32),
-                        child: Column(
-                          children: [
-                            _infoTile(
-                              Icons.shield_rounded,
-                              "Secure Data Storage",
-                            ),
-                            const SizedBox(height: 12),
-                            _infoTile(
-                              Icons.notifications_active_rounded,
-                              "Auto SMS & Email Alerts",
-                            ),
-                            const SizedBox(height: 12),
-                            _infoTile(
-                              Icons.track_changes_rounded,
-                              "Real-time Status Tracking",
-                            ),
-                          ],
-                        ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.2),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isMobile = width < 900;
 
-          // ── RIGHT FORM PANEL ──
-          Expanded(
-            child: Column(
-              children: [
-                _formTopBar(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 48,
-                      vertical: 36,
-                    ),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 320),
-                      transitionBuilder: (child, anim) => FadeTransition(
-                        opacity: anim,
-                        child: SlideTransition(
-                          position: Tween(
-                            begin: const Offset(0.04, 0),
-                            end: Offset.zero,
-                          ).animate(anim),
-                          child: child,
-                        ),
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F6F6),
+          body: Row(
+            children: [
+              // ── LEFT GRADIENT PANEL (Desktop only) ──
+              if (!isMobile)
+                SizedBox(
+                  width: 320,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFF6B0F3A),
+                          Color(0xFFEC1349),
+                          Color(0xFFFF6B6B),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      child: _buildStepContent(key: ValueKey(_step)),
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned(top: -60, right: -60, child: _blob(220, 0.06)),
+                        Positioned(bottom: -80, left: -40, child: _blob(260, 0.05)),
+                        Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(28, 48, 28, 0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _backButton(context),
+                                  const SizedBox(height: 32),
+                                  _photoUpload(),
+                                  const SizedBox(height: 32),
+                                  _buildStepper(),
+                                ],
+                              ),
+                            ),
+                            const Spacer(),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(28, 0, 28, 32),
+                              child: Column(
+                                children: [
+                                  _infoTile(Icons.shield_rounded, "Secure Data"),
+                                  const SizedBox(height: 12),
+                                  _infoTile(Icons.notifications_active_rounded, "Auto Alerts"),
+                                  const SizedBox(height: 12),
+                                  _infoTile(Icons.track_changes_rounded, "Real-time Tracking"),
+                                ],
+                              ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.2),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                _buildNavBar(),
-              ],
-            ),
+
+              // ── RIGHT FORM PANEL ──
+              Expanded(
+                child: Column(
+                  children: [
+                    _formTopBar(isMobile),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 20 : 48,
+                          vertical: isMobile ? 24 : 36,
+                        ),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 320),
+                          transitionBuilder: (child, anim) => FadeTransition(
+                            opacity: anim,
+                            child: SlideTransition(
+                              position: Tween(
+                                begin: const Offset(0.04, 0),
+                                end: Offset.zero,
+                              ).animate(anim),
+                              child: child,
+                            ),
+                          ),
+                          child: _buildStepContent(width: width, key: ValueKey(_step)),
+                        ),
+                      ),
+                    ),
+                    _buildNavBar(isMobile),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -358,78 +354,92 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
   );
 
   // ── TOP BAR ──
-  Widget _formTopBar() {
+  Widget _formTopBar(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 18),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : 40,
+        vertical: isMobile ? 14 : 18,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF1F1F1))),
       ),
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "New Application",
-                style: AppTheme.titleStyle.copyWith(fontSize: 22),
-              ),
-              Text(
-                "Step ${_step + 1} of ${_stepLabels.length} — ${_stepLabels[_step]}",
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-              ),
-            ],
-          ),
-          const Spacer(),
-          SizedBox(
-            width: 160,
+          if (isMobile)
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+            ),
+          Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "${((_step + 1) / _stepLabels.length * 100).toInt()}% Complete",
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryRed,
-                  ),
+                  "New Application",
+                  style: AppTheme.titleStyle.copyWith(fontSize: isMobile ? 18 : 22),
                 ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: (_step + 1) / _stepLabels.length,
-                    color: AppColors.primaryRed,
-                    backgroundColor: AppColors.primaryRed.withValues(
-                      alpha: 0.1,
-                    ),
-                    minHeight: 5,
-                  ),
+                Text(
+                  "Step ${_step + 1}: ${_stepLabels[_step]}",
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
                 ),
               ],
             ),
           ),
+          if (!isMobile) ...[
+            const Spacer(),
+            SizedBox(
+              width: 160,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    "${((_step + 1) / _stepLabels.length * 100).toInt()}% Complete",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryRed,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: (_step + 1) / _stepLabels.length,
+                      color: AppColors.primaryRed,
+                      backgroundColor: AppColors.primaryRed.withValues(
+                        alpha: 0.1,
+                      ),
+                      minHeight: 5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildStepContent({required Key key}) {
+  Widget _buildStepContent({required double width, required Key key}) {
+    bool isMobile = width < 900;
     switch (_step) {
       case 0:
-        return _stepPersonal(key: key);
+        return _stepPersonal(width: width, key: key);
       case 1:
-        return _stepAcademic(key: key);
+        return _stepAcademic(width: width, key: key);
       case 2:
-        return _stepProgram(key: key);
+        return _stepProgram(width: width, key: key);
       case 3:
-        return _stepDocuments(key: key);
+        return _stepDocuments(width: width, key: key);
       default:
-        return _stepPersonal(key: key);
+        return _stepPersonal(width: width, key: key);
     }
   }
 
-  Widget _stepPersonal({required Key key}) {
+  Widget _stepPersonal({required double width, required Key key}) {
+    bool isMobile = width < 700;
     return Column(
       key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,12 +450,12 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
           Icons.person_rounded,
         ),
         const SizedBox(height: 30),
-        _row([
+        _row(isMobile, [
           _field("First Name", Icons.person_outline_rounded),
           _field("Last Name", Icons.person_outline_rounded),
         ]),
         const SizedBox(height: 18),
-        _row([
+        _row(isMobile, [
           _field("Date of Birth", Icons.cake_rounded, hint: "DD / MM / YYYY"),
           _dropdown(
             "Gender",
@@ -462,7 +472,7 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
           hint: "applicant@example.com",
         ),
         const SizedBox(height: 18),
-        _row([
+        _row(isMobile, [
           _field(
             "Mobile Number",
             Icons.phone_android_rounded,
@@ -477,7 +487,7 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
           hint: "Street, City, State, PIN Code",
         ),
         const SizedBox(height: 18),
-        _row([
+        _row(isMobile, [
           _field("City", Icons.location_city_rounded),
           _field("State", Icons.map_rounded),
           _field("PIN Code", Icons.pin_drop_rounded, hint: "6-digit"),
@@ -486,7 +496,8 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
     );
   }
 
-  Widget _stepAcademic({required Key key}) {
+  Widget _stepAcademic({required double width, required Key key}) {
+    bool isMobile = width < 700;
     return Column(
       key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -505,7 +516,7 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
           (v) => setState(() => _selectedQualification = v!),
         ),
         const SizedBox(height: 18),
-        _row([
+        _row(isMobile, [
           _field(
             "Institution Name",
             Icons.account_balance_rounded,
@@ -514,7 +525,7 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
           _field("Board / University", Icons.corporate_fare_rounded),
         ]),
         const SizedBox(height: 18),
-        _row([
+        _row(isMobile, [
           _field(
             "Percentage / CGPA",
             Icons.percent_rounded,
@@ -527,7 +538,7 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
           ),
         ]),
         const SizedBox(height: 18),
-        _row([
+        _row(isMobile, [
           _field("Subject 1 Marks", Icons.book_rounded),
           _field("Subject 2 Marks", Icons.book_rounded),
           _field("Subject 3 Marks", Icons.book_rounded),
@@ -542,7 +553,8 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
     );
   }
 
-  Widget _stepProgram({required Key key}) {
+  Widget _stepProgram({required double width, required Key key}) {
+    bool isMobile = width < 700;
     return Column(
       key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -554,10 +566,10 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
         ),
         const SizedBox(height: 30),
         GridView.count(
-          crossAxisCount: 3,
+          crossAxisCount: width < 600 ? 1 : (width < 900 ? 2 : 3),
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 2.2,
+          childAspectRatio: width < 600 ? 1.8 : 2.2,
           crossAxisSpacing: 14,
           mainAxisSpacing: 14,
           children: _programs.map((p) {
@@ -608,7 +620,7 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
           }).toList(),
         ),
         const SizedBox(height: 22),
-        _row([
+        _row(isMobile, [
           _dropdown(
             "Session Year",
             Icons.event_rounded,
@@ -634,7 +646,7 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
     );
   }
 
-  Widget _stepDocuments({required Key key}) {
+  Widget _stepDocuments({required double width, required Key key}) {
     final docs = [
       {
         "name": "10th Marksheet",
@@ -678,10 +690,10 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
         ),
         const SizedBox(height: 30),
         GridView.count(
-          crossAxisCount: 3,
+          crossAxisCount: width < 600 ? 1 : (width < 900 ? 2 : 3),
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 1.5,
+          childAspectRatio: width < 600 ? 1.8 : 1.5,
           crossAxisSpacing: 14,
           mainAxisSpacing: 14,
           children: docs.map((d) {
@@ -714,13 +726,17 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
                     child: Icon(d['icon'] as IconData, color: color, size: 22),
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    d['name'] as String,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
+                  Flexible(
+                    child: Text(
+                      d['name'] as String,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 6),
                   Container(
@@ -774,11 +790,13 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
       ],
     );
   }
-
   // ── NAV BAR ──
-  Widget _buildNavBar() {
+  Widget _buildNavBar(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : 48,
+        vertical: isMobile ? 14 : 20,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Color(0xFFF1F1F1))),
@@ -786,52 +804,44 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
       child: Row(
         children: [
           if (_step > 0)
-            OutlinedButton.icon(
+            OutlinedButton(
               onPressed: () => setState(() => _step--),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: Colors.grey.shade300, width: 2),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 16 : 24,
+                  vertical: isMobile ? 12 : 16,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(13),
                 ),
               ),
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 15,
-                color: Colors.black54,
-              ),
-              label: const Text(
-                "Previous",
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: const Text("Previous", style: TextStyle(color: Colors.black)),
             ),
           const Spacer(),
-          if (_step < _stepLabels.length - 1)
-            _gradientBtn(
-              Icons.arrow_forward_ios_rounded,
-              "Next Step",
-              () => setState(() => _step++),
-            )
-          else
-            _gradientBtn(
-              _isSaving
-                  ? Icons.hourglass_empty_rounded
-                  : Icons.check_circle_rounded,
-              _isSaving ? "Submitting..." : "Submit Application",
-              () async {
-                setState(() => _isSaving = true);
-                await Future.delayed(const Duration(seconds: 2));
-                if (!mounted) return;
-                setState(() => _isSaving = false);
-                Navigator.pop(context);
-              },
+          ElevatedButton(
+            onPressed: () {
+              if (_step < _stepLabels.length - 1) {
+                setState(() => _step++);
+              } else {
+                _saveApplication();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryRed,
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 32 : 48,
+                vertical: isMobile ? 12 : 16,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(13),
+              ),
             ),
+            child: Text(
+              _step < _stepLabels.length - 1 ? "Next Step" : "Submit",
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
         ],
       ),
     );
@@ -895,27 +905,44 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
           child: Icon(icon, color: Colors.white, size: 24),
         ),
         const SizedBox(width: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: AppTheme.titleStyle.copyWith(fontSize: 24)),
-            Text(
-              sub,
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-            ),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTheme.titleStyle.copyWith(fontSize: 24)),
+              Text(
+                sub,
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+              ),
+            ],
+          ),
         ),
       ],
     ).animate().fadeIn().slideX(begin: -0.1);
   }
 
-  Widget _row(List<Widget> children) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: children.expand((w) sync* {
-      yield Expanded(child: w);
-      if (w != children.last) yield const SizedBox(width: 16);
-    }).toList(),
-  );
+  Widget _row(bool isMobile, List<Widget> children) {
+    if (isMobile) {
+      return Column(
+        children: children
+            .map((c) => Padding(
+                  padding: const EdgeInsets.only(bottom: 18),
+                  child: c,
+                ))
+            .toList(),
+      );
+    }
+    return Row(
+      children: children
+          .map((c) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 18),
+                  child: c,
+                ),
+              ))
+          .toList(),
+    );
+  }
 
   Widget _field(
     String label,
@@ -1031,5 +1058,17 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _saveApplication() async {
+    setState(() => _isSaving = true);
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) {
+      setState(() => _isSaving = false);
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Application submitted successfully!")),
+      );
+    }
   }
 }

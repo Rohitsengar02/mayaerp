@@ -9,339 +9,237 @@ class ApplicationDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = application['status'] as String;
-    final statusColor = status == 'Approved'
-        ? Colors.green
-        : status == 'Rejected'
-        ? Colors.red
-        : Colors.orange;
-    final bannerGrad = status == 'Approved'
-        ? [const Color(0xFF065F46), const Color(0xFF10B981)]
-        : status == 'Rejected'
-        ? [const Color(0xFF7F1D1D), const Color(0xFFEF4444)]
-        : [const Color(0xFF880E4F), const Color(0xFFEC1349)];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isMobile = width < 900;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F6F6),
-      body: Row(
-        children: [
-          // ── LEFT: Profile card ──
-          SizedBox(
-            width: 340,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: bannerGrad,
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(top: -50, right: -60, child: _blob(260, 0.07)),
-                  Positioned(bottom: -80, left: -40, child: _blob(300, 0.05)),
-                  SafeArea(
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(28, 36, 28, 0),
-                          child: Row(
-                            children: [
-                              InkWell(
-                                onTap: () => Navigator.pop(context),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.arrow_back_ios_new_rounded,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              const Text(
-                                "Application Detail",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 17,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 36),
+        final status = application['status'] as String;
+        final statusColor = status == 'Approved'
+            ? Colors.green
+            : status == 'Rejected'
+            ? Colors.red
+            : Colors.orange;
+        final bannerGrad = status == 'Approved'
+            ? [const Color(0xFF065F46), const Color(0xFF10B981)]
+            : status == 'Rejected'
+            ? [const Color(0xFF7F1D1D), const Color(0xFFEF4444)]
+            : [const Color(0xFF880E4F), const Color(0xFFEC1349)];
 
-                        // Avatar
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 5),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.15),
-                                blurRadius: 25,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            radius: 52,
-                            backgroundImage: NetworkImage(
-                              application['avatar'],
-                            ),
-                          ),
-                        ).animate().scale(
-                          duration: 600.ms,
-                          curve: Curves.easeOutBack,
-                        ),
-
-                        const SizedBox(height: 20),
-                        Text(
-                          application['name'],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 22,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(100),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Text(
-                            application['course'],
-                            style: const TextStyle(
+        Widget leftPanel = Container(
+          width: isMobile ? double.infinity : 340,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: bannerGrad,
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: Stack(
+            children: [
+              Positioned(top: -50, right: -60, child: _blob(260, 0.07)),
+              Positioned(bottom: -80, left: -40, child: _blob(300, 0.05)),
+              SafeArea(
+                bottom: !isMobile,
+                child: Column(
+                  mainAxisSize: isMobile ? MainAxisSize.min : MainAxisSize.max,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(28, 36, 28, 0),
+                      child: Row(
+                        children: [
+                          _backIcon(context),
+                          const SizedBox(width: 14),
+                          const Text(
+                            "Application Details",
+                            style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                              fontSize: 17,
                             ),
                           ),
-                        ),
-
-                        const SizedBox(height: 30),
-
-                        // Status badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 22,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(100),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: statusColor,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                status,
-                                style: TextStyle(
-                                  color: statusColor,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // Mini stat pills
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Row(
-                            children: [
-                              _statPill("Merit Score", application['score']),
-                              const SizedBox(width: 12),
-                              _statPill("Applied On", application['date']),
-                            ],
-                          ),
-                        ),
-
-                        const Spacer(),
-
-                        // Action buttons
-                        if (status == 'Pending')
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                            child: Column(
-                              children: [
-                                _actionButton(
-                                  "✓  Approve Application",
-                                  Colors.green,
-                                  () => Navigator.pop(context),
-                                ),
-                                const SizedBox(height: 12),
-                                _actionButton(
-                                  "✕  Reject Application",
-                                  Colors.red,
-                                  () => Navigator.pop(context),
-                                ),
-                              ],
-                            ),
-                          )
-                        else
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                            child: _actionButton(
-                              "← Back to Applications",
-                              Colors.white.withValues(alpha: 0.15),
-                              () => Navigator.pop(context),
-                              textColor: Colors.white,
-                            ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 36),
+                    _profileContent(status, statusColor),
+                    const SizedBox(height: 32),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Row(
+                        children: [
+                          _statPill("Merit Score", application['score']),
+                          const SizedBox(width: 12),
+                          _statPill("Applied On", application['date']),
+                        ],
+                      ),
+                    ),
+                    if (!isMobile) const Spacer(),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(24, isMobile ? 32 : 0, 24, 32),
+                      child: _actionButtons(context, status),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
+        );
 
-          // ── RIGHT: Detail content ──
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(40),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Personal info
-                  _section("Personal Information", [
-                    _infoRow(
-                      Icons.person_rounded,
-                      "Full Name",
-                      application['name'],
-                    ),
-                    _infoRow(
-                      Icons.location_city_rounded,
-                      "City",
-                      application['city'],
-                    ),
-                    _infoRow(
-                      Icons.phone_android_rounded,
-                      "Mobile",
-                      "+91 98765 43210",
-                    ),
-                    _infoRow(
-                      Icons.alternate_email_rounded,
-                      "Email",
-                      "${(application['name'] as String).toLowerCase().replaceAll(' ', '.')}@example.com",
-                    ),
-                    _infoRow(
-                      Icons.location_on_rounded,
-                      "Address",
-                      "123, Main Road, ${application['city']} - 400001",
-                    ),
-                  ], 0),
-
-                  const SizedBox(height: 28),
-
-                  // Academic info
-                  _section("Academic Details", [
-                    _infoRow(
-                      Icons.school_rounded,
-                      "Qualification",
-                      "XII / HSC",
-                    ),
-                    _infoRow(
-                      Icons.account_balance_rounded,
-                      "Institution",
-                      "Government Senior Secondary School",
-                    ),
-                    _infoRow(
-                      Icons.percent_rounded,
-                      "Percentage",
-                      application['score'],
-                    ),
-                    _infoRow(
-                      Icons.calendar_today_rounded,
-                      "Year of Passing",
-                      "2023",
-                    ),
-                    _infoRow(
-                      Icons.assignment_rounded,
-                      "Entrance Score",
-                      "JEE Mains — 87.4 Percentile",
-                    ),
-                  ], 1),
-
-                  const SizedBox(height: 28),
-
-                  // Program info
-                  _section("Program Selection", [
-                    _infoRow(
-                      Icons.library_books_rounded,
-                      "Applied Course",
-                      application['course'],
-                    ),
-                    _infoRow(
-                      Icons.event_rounded,
-                      "Academic Session",
-                      "2024-25",
-                    ),
-                    _infoRow(Icons.category_rounded, "Category", "General"),
-                    _infoRow(
-                      Icons.calendar_month_rounded,
-                      "Application Date",
-                      "Aug ${application['date'].split(' ').last}, 2023",
-                    ),
-                  ], 2),
-
-                  const SizedBox(height: 28),
-
-                  // Documents
-                  _section(
-                    "Uploaded Documents",
-                    [],
-                    3,
-                    customChild: _docGrid(),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // Timeline
-                  _section(
-                    "Application Timeline",
-                    [],
-                    4,
-                    customChild: _timeline(status),
-                  ),
-                ],
-              ),
-            ),
+        Widget rightContent = SingleChildScrollView(
+          padding: EdgeInsets.all(isMobile ? 20 : 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _section("Personal Information", [
+                _infoRow(Icons.person_rounded, "Full Name", application['name']),
+                _infoRow(Icons.location_city_rounded, "City", application['city']),
+                _infoRow(Icons.phone_android_rounded, "Mobile", "+91 98765 43210"),
+                _infoRow(Icons.alternate_email_rounded, "Email", "${(application['name'] as String).toLowerCase().replaceAll(' ', '.')}@example.com"),
+                _infoRow(Icons.location_on_rounded, "Address", "123, Main Road, ${application['city']} - 400001"),
+              ], 0),
+              const SizedBox(height: 28),
+              _section("Academic Details", [
+                _infoRow(Icons.school_rounded, "Qualification", "XII / HSC"),
+                _infoRow(Icons.account_balance_rounded, "Institution", "Govt Senior Secondary School"),
+                _infoRow(Icons.percent_rounded, "Percentage", application['score']),
+                _infoRow(Icons.calendar_today_rounded, "Year of Passing", "2023"),
+                _infoRow(Icons.assignment_rounded, "Entrance Score", "JEE Mains — 87.4 Percentile"),
+              ], 1),
+              const SizedBox(height: 28),
+              _section("Program Selection", [
+                _infoRow(Icons.library_books_rounded, "Applied Course", application['course']),
+                _infoRow(Icons.event_rounded, "Academic Session", "2024-25"),
+                _infoRow(Icons.category_rounded, "Category", "General"),
+                _infoRow(Icons.calendar_month_rounded, "Date", "Aug ${application['date'].split(' ').last}, 2023"),
+              ], 2),
+              const SizedBox(height: 28),
+              _section("Uploaded Documents", [], 3, customChild: _docGrid(width)),
+              const SizedBox(height: 28),
+              _section("Application Timeline", [], 4, customChild: _timeline(status)),
+            ],
           ),
-        ],
+        );
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F6F6),
+          body: isMobile
+              ? SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      leftPanel,
+                      rightContent,
+                    ],
+                  ),
+                )
+              : Row(
+                  children: [
+                    leftPanel,
+                    Expanded(child: rightContent),
+                  ],
+                ),
+        );
+      },
+    );
+  }
+
+  Widget _backIcon(BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.pop(context),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        ),
+        child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
       ),
+    );
+  }
+
+  Widget _profileContent(String status, Color statusColor) {
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 25,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: CircleAvatar(
+            radius: 52,
+            backgroundImage: NetworkImage(application['avatar']),
+          ),
+        ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
+        const SizedBox(height: 20),
+        Text(
+          application['name'],
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+          ),
+          child: Text(
+            application['course'],
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(100),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                status,
+                style: TextStyle(color: statusColor, fontWeight: FontWeight.w900, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _actionButtons(BuildContext context, String status) {
+    if (status == 'Pending') {
+      return Column(
+        children: [
+          _actionButton("✓  Approve Application", Colors.green, () => Navigator.pop(context)),
+          const SizedBox(height: 12),
+          _actionButton("✕  Reject Application", Colors.red, () => Navigator.pop(context)),
+        ],
+      );
+    }
+    return _actionButton(
+      "← Back to Applications",
+      Colors.white.withValues(alpha: 0.15),
+      () => Navigator.pop(context),
+      textColor: Colors.white,
     );
   }
 
@@ -504,7 +402,7 @@ class ApplicationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _docGrid() {
+  Widget _docGrid(double width) {
     final docs = [
       {
         "name": "10th Marksheet",
@@ -517,7 +415,7 @@ class ApplicationDetailScreen extends StatelessWidget {
         "status": "Uploaded",
       },
       {
-        "name": "Transfer Certificate",
+        "name": "Transfer Cert",
         "color": const Color(0xFF7C3AED),
         "status": "Uploaded",
       },
@@ -538,8 +436,8 @@ class ApplicationDetailScreen extends StatelessWidget {
       },
     ];
     return GridView.count(
-      crossAxisCount: 3,
-      childAspectRatio: 2.2,
+      crossAxisCount: width < 600 ? 1 : (width < 1200 ? 2 : 3),
+      childAspectRatio: width < 650 ? 3.5 : 2.2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 14,

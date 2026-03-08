@@ -82,32 +82,88 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F6F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(40),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildStatsCarousel(),
-                  const SizedBox(height: 48),
-                  _buildFilters(),
-                  const SizedBox(height: 40),
-                  _buildStudentGrid(),
-                ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isMobile = width < 1100;
+        final sidePadding = isMobile ? 20.0 : 40.0;
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F6F6),
+          body: Column(
+            children: [
+              _buildHeader(isMobile),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(sidePadding),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildStatsCarousel(isMobile),
+                      SizedBox(height: isMobile ? 32 : 48),
+                      _buildFilters(isMobile),
+                      SizedBox(height: isMobile ? 32 : 40),
+                      _buildStudentGrid(width),
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isMobile) {
+    if (isMobile) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Color(0xFFF1F1F1))),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Student Registry",
+              style: AppTheme.titleStyle.copyWith(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _headerActionBtn(
+                    Icons.file_download_rounded,
+                    "Export",
+                    Colors.white,
+                    Colors.black,
+                    () {},
+                    isMobile: true,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _headerActionBtn(
+                    Icons.person_add_rounded,
+                    "Add",
+                    AppColors.primaryRed,
+                    Colors.white,
+                    () {},
+                    isMobile: true,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       decoration: const BoxDecoration(
@@ -159,7 +215,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     );
   }
 
-  Widget _buildStatsCarousel() {
+  Widget _buildStatsCarousel(bool isMobile) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
@@ -171,30 +227,34 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
             "+12% since last year",
             Icons.people_alt_rounded,
             Colors.blue,
+            isMobile: isMobile,
           ),
-          const SizedBox(width: 24),
+          SizedBox(width: isMobile ? 16 : 24),
           _statCard(
             "Gender Ratio",
             "52:48",
             "Male to Female",
             Icons.wc_rounded,
             Colors.purple,
+            isMobile: isMobile,
           ),
-          const SizedBox(width: 24),
+          SizedBox(width: isMobile ? 16 : 24),
           _statCard(
             "Academic Excellence",
             "8.2 GPA",
             "Institutional average",
             Icons.auto_graph_rounded,
             Colors.orange,
+            isMobile: isMobile,
           ),
-          const SizedBox(width: 24),
+          SizedBox(width: isMobile ? 16 : 24),
           _statCard(
             "Active Clubs",
             "24",
             "3 new this semester",
             Icons.extension_rounded,
             Colors.green,
+            isMobile: isMobile,
           ),
         ],
       ),
@@ -206,14 +266,15 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     String value,
     String trend,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    bool isMobile = false,
+  }) {
     return Container(
-      width: 320,
-      padding: const EdgeInsets.all(32),
+      width: isMobile ? 260 : 320,
+      padding: EdgeInsets.all(isMobile ? 24 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(isMobile ? 24 : 32),
         border: Border.all(color: Colors.black.withOpacity(0.03)),
         boxShadow: [
           BoxShadow(
@@ -230,12 +291,12 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(isMobile ? 10 : 12),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(isMobile ? 12 : 14),
                 ),
-                child: Icon(icon, color: color, size: 24),
+                child: Icon(icon, color: color, size: isMobile ? 20 : 24),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -254,11 +315,11 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: isMobile ? 20 : 24),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 32,
+            style: TextStyle(
+              fontSize: isMobile ? 28 : 32,
               fontWeight: FontWeight.w900,
               letterSpacing: -1,
             ),
@@ -266,12 +327,18 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
           const SizedBox(height: 8),
           Text(
             label,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: isMobile ? 13 : 14,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             trend,
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+            style: TextStyle(
+              color: Colors.grey.shade400,
+              fontSize: isMobile ? 11 : 12,
+            ),
           ),
         ],
       ),
@@ -283,8 +350,9 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     String label,
     Color bg,
     Color fg,
-    VoidCallback onTap,
-  ) {
+    VoidCallback onTap, {
+    bool isMobile = false,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: bg,
@@ -306,17 +374,21 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 12 : 20,
+              vertical: 12,
+            ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: fg, size: 20),
-                const SizedBox(width: 10),
+                Icon(icon, color: fg, size: isMobile ? 18 : 20),
+                const SizedBox(width: 8),
                 Text(
                   label,
                   style: TextStyle(
                     color: fg,
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: isMobile ? 12 : 13,
                   ),
                 ),
               ],
@@ -327,7 +399,50 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     );
   }
 
-  Widget _buildFilters() {
+  Widget _buildFilters(bool isMobile) {
+    if (isMobile) {
+      return Column(
+        children: [
+          _searchBar(isMobile: true),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.black.withOpacity(0.03)),
+            ),
+            child: Column(
+              children: [
+                _filterDropdown(
+                  "Course",
+                  ["All Courses", "B.Tech", "B.Sc", "MBA", "BBA"],
+                  _selectedCourse,
+                  (v) => setState(() => _selectedCourse = v!),
+                  isMobile: true,
+                ),
+                const Divider(height: 24),
+                _filterDropdown(
+                  "Year",
+                  ["All Years", "1st Year", "2nd Year", "3rd Year", "Final Year"],
+                  _selectedYear,
+                  (v) => setState(() => _selectedYear = v!),
+                  isMobile: true,
+                ),
+                const Divider(height: 24),
+                _filterDropdown(
+                  "Status",
+                  ["All Status", "Regular", "Alumni", "Suspended"],
+                  _selectedStatus,
+                  (v) => setState(() => _selectedStatus = v!),
+                  isMobile: true,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -370,13 +485,14 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     ).animate().fadeIn().slideY(begin: 0.1);
   }
 
-  Widget _searchBar() {
+  Widget _searchBar({bool isMobile = false}) {
     return Container(
-      width: 300,
+      width: isMobile ? double.infinity : 300,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F6F6),
+        color: isMobile ? Colors.white : const Color(0xFFF8F6F6),
         borderRadius: BorderRadius.circular(14),
+        border: isMobile ? Border.all(color: Colors.black.withOpacity(0.05)) : null,
       ),
       child: const TextField(
         decoration: InputDecoration(
@@ -393,8 +509,55 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     String label,
     List<String> items,
     String value,
-    Function(String?) onChanged,
-  ) {
+    Function(String?) onChanged, {
+    bool isMobile = false,
+  }) {
+    final dropdown = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F6F6),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: isMobile,
+          items: items
+              .map(
+                (i) => DropdownMenuItem(
+                  value: i,
+                  child: Text(
+                    i,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+
+    if (isMobile) {
+      return Row(
+        children: [
+          Text(
+            "$label:",
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(child: dropdown),
+        ],
+      );
+    }
+
     return Row(
       children: [
         Text(
@@ -406,173 +569,162 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
           ),
         ),
         const SizedBox(width: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8F6F6),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              items: items
-                  .map(
-                    (i) => DropdownMenuItem(
-                      value: i,
-                      child: Text(
-                        i,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: onChanged,
-            ),
-          ),
-        ),
+        dropdown,
       ],
     );
   }
 
-  Widget _buildStudentGrid() {
+  Widget _buildStudentGrid(double width) {
+    final isMobile = width < 700;
+    final isTablet = width >= 700 && width < 1100;
+
+    int crossAxisCount = 3;
+    if (isMobile) crossAxisCount = 1;
+    else if (isTablet) crossAxisCount = 2;
+
+    double childAspectRatio = 2.2;
+    if (isMobile) childAspectRatio = 2.4;
+    else if (isTablet) childAspectRatio = 1.8;
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 2.2,
-        crossAxisSpacing: 24,
-        mainAxisSpacing: 24,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: childAspectRatio,
+        crossAxisSpacing: isMobile ? 16 : 24,
+        mainAxisSpacing: isMobile ? 16 : 24,
       ),
       itemCount: _students.length,
-      itemBuilder: (context, index) => _studentCard(_students[index], index),
+      itemBuilder: (context, index) => _studentCard(_students[index], index, isMobile),
     );
   }
 
-  Widget _studentCard(Map<String, dynamic> s, int index) {
+  Widget _studentCard(Map<String, dynamic> s, int index, bool isMobile) {
     return Hero(
-          tag: 'student_avatar_${s['roll']}',
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.black.withOpacity(0.03)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.02),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+      tag: 'student_avatar_${s['roll']}',
+      child: Container(
+        padding: EdgeInsets.all(isMobile ? 16 : 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
+          border: Border.all(color: Colors.black.withOpacity(0.03)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
             ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => StudentDetailScreen(student: s),
-                  ),
-                ),
-                borderRadius: BorderRadius.circular(24),
-                child: Column(
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => StudentDetailScreen(student: s),
+              ),
+            ),
+            borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(18),
-                            image: DecorationImage(
-                              image: NetworkImage(s['image']),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+                    Container(
+                      width: isMobile ? 60 : 70,
+                      height: isMobile ? 60 : 70,
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(isMobile ? 14 : 18),
+                        image: DecorationImage(
+                          image: NetworkImage(s['image']),
+                          fit: BoxFit.cover,
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      ),
+                    ),
+                    SizedBox(width: isMobile ? 12 : 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.withOpacity(0.08),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      s['roll'],
-                                      style: const TextStyle(
-                                        color: Colors.blue,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 10,
-                                      ),
-                                    ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  s['roll'],
+                                  style: const TextStyle(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
                                   ),
-                                  _statusSmallBadge(s['status']),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                s['name'],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 17,
-                                  letterSpacing: -0.5,
                                 ),
                               ),
-                              Text(
-                                s['department'],
-                                style: TextStyle(
-                                  color: Colors.grey.shade400,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              _statusSmallBadge(s['status']),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    const Divider(height: 1),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        _miniInfo(Icons.school_rounded, s['course']),
-                        const SizedBox(width: 16),
-                        _miniInfo(Icons.stars_rounded, "CGPA: ${s['cgpa']}"),
-                        const Spacer(),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 12,
-                          color: Colors.grey,
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            s['name'],
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: isMobile ? 16 : 17,
+                              letterSpacing: -0.5,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            s['department'],
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: isMobile ? 10 : 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
+                const Spacer(),
+                const Divider(height: 1),
+                SizedBox(height: isMobile ? 12 : 16),
+                Row(
+                  children: [
+                    Expanded(child: _miniInfo(Icons.school_rounded, s['course'])),
+                    if (!isMobile) ...[
+                      const SizedBox(width: 16),
+                      _miniInfo(Icons.stars_rounded, "CGPA: ${s['cgpa']}"),
+                    ],
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 12,
+                      color: Colors.grey,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        )
-        .animate(delay: (index * 60).ms)
-        .fadeIn()
-        .scale(begin: const Offset(0.98, 0.98));
+        ),
+      ),
+    )
+    .animate(delay: (index * 60).ms)
+    .fadeIn()
+    .scale(begin: const Offset(0.98, 0.98));
   }
 
   Widget _statusSmallBadge(String status) {

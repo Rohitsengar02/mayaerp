@@ -975,23 +975,59 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
 
   Widget _buildExamFilters(bool isMobile) {
     if (isMobile) {
-      return Column(
-        children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          children: [
+            Row(
               children: [
-                _examFilterChip("All Exams", true, true),
-                const SizedBox(width: 8),
-                _examFilterChip("Theory", false, true),
-                const SizedBox(width: 8),
-                _examFilterChip("Practical", false, true),
-                const SizedBox(width: 8),
-                _examFilterChip("Vivas", false, true),
+                const Icon(Icons.filter_list_rounded, color: Colors.indigo, size: 20),
+                const SizedBox(width: 12),
+                Text(
+                  "Filter Exams",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _examFilterChip("All Exams", true, isMobile),
+                _examFilterChip("Theory", false, isMobile),
+                _examFilterChip("Practicals", false, isMobile),
+                _examFilterChip("Vivas", false, isMobile),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: _filterDropdown(
+                    "Course",
+                    _selectedCourse,
+                    _courses,
+                    (v) => setState(() => _selectedCourse = v!),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _filterDropdown("Semester", "Sem 1", ["Sem 1", "Sem 2", "Sem 3"], (v) {}),
+                ),
+              ],
+            ),
+          ],
+        ),
       );
     }
 

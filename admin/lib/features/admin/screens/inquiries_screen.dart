@@ -103,135 +103,184 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          color: const Color(0xFFF8F6F6),
-          child: Column(
-            children: [
-              _buildHeader(context),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildStatsRow(),
-                      const SizedBox(height: 32),
-                      _buildFiltersAndGrid(),
-                    ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isMobile = width < 850;
+
+        return Stack(
+          children: [
+            Container(
+              color: const Color(0xFFF8F6F6),
+              child: Column(
+                children: [
+                  _buildHeader(context, isMobile),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(isMobile ? 16 : 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildStatsRow(isMobile),
+                          SizedBox(height: isMobile ? 24 : 32),
+                          _buildFiltersAndGrid(isMobile, width),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-        ),
-        // Slide-up Add Inquiry Sheet
-        if (_showAddSheet) _buildAddSheet(context),
-      ],
+            ),
+            // Slide-up Add Inquiry Sheet
+            if (_showAddSheet) _buildAddSheet(context, isMobile),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 22),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : 40,
+        vertical: isMobile ? 16 : 22,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF1F1F1))),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Inquiries Management",
-                style: AppTheme.titleStyle.copyWith(fontSize: 26),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "Track and manage student walk-in & phone inquiries",
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4F46E5).withOpacity(0.08),
-                  shadowColor: Colors.transparent,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 13,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(
-                  Icons.file_download_rounded,
-                  color: Color(0xFF4F46E5),
-                  size: 17,
-                ),
-                label: const Text(
-                  "Export",
-                  style: TextStyle(
-                    color: Color(0xFF4F46E5),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryRed.withOpacity(0.3),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
+      child: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                 Text(
+                   "Inquiries Management",
+                   style: AppTheme.titleStyle.copyWith(fontSize: 22),
+                 ),
+                 const SizedBox(height: 16),
+                 Row(
+                   children: [
+                     Expanded(
+                       child: _headerActionBtn(
+                         "Export", 
+                         Icons.file_download_rounded, 
+                         const Color(0xFF4F46E5),
+                       ),
+                     ),
+                     const SizedBox(width: 12),
+                     Expanded(
+                       child: _headerActionBtn(
+                         "Add Inquiry", 
+                         Icons.add_rounded, 
+                         AppColors.primaryRed,
+                         isPrimary: true,
+                       ),
+                     ),
+                   ],
+                 ),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Inquiries Management",
+                      style: AppTheme.titleStyle.copyWith(fontSize: 26),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Track and manage student walk-in & phone inquiries",
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                     ),
                   ],
                 ),
-                child: ElevatedButton.icon(
-                  onPressed: () => setState(() => _showAddSheet = true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 13,
+                Row(
+                  children: [
+                    _headerActionBtn(
+                      "Export", 
+                      Icons.file_download_rounded, 
+                      const Color(0xFF4F46E5),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    const SizedBox(width: 14),
+                    _headerActionBtn(
+                      "Add Inquiry", 
+                      Icons.add_rounded, 
+                      AppColors.primaryRed,
+                      isPrimary: true,
                     ),
-                  ),
-                  icon: const Icon(
-                    Icons.add_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  label: const Text(
-                    "Add Inquiry",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
+    );
+  }
+
+  Widget _headerActionBtn(String label, IconData icon, Color color, {bool isPrimary = false}) {
+    if (isPrimary) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: AppColors.primaryGradient,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryRed.withOpacity(0.3),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ElevatedButton.icon(
+          onPressed: () => setState(() => _showAddSheet = true),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 13,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-        ],
+          icon: Icon(icon, color: Colors.white, size: 18),
+          label: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      );
+    }
+    return ElevatedButton.icon(
+      onPressed: () {},
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withOpacity(0.08),
+        shadowColor: Colors.transparent,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 13,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      icon: Icon(icon, color: color, size: 17),
+      label: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
 
-  Widget _buildStatsRow() {
+  Widget _buildStatsRow(bool isMobile) {
     final stats = [
       {
         "label": "Total Inquiries",
@@ -267,6 +316,31 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
         "colors": [const Color(0xFF312E81), const Color(0xFF6366F1)],
       },
     ];
+
+    if (isMobile) {
+      return SizedBox(
+        height: 180,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: stats.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 16),
+          itemBuilder: (context, i) {
+            final s = stats[i];
+            return SizedBox(
+              width: 220,
+              child: _statCard(
+                s['label'] as String,
+                s['value'] as String,
+                s['icon'] as IconData,
+                s['colors'] as List<Color>,
+                i,
+              ),
+            );
+          },
+        ),
+      );
+    }
+
     return Row(
       children: List.generate(stats.length, (i) {
         final s = stats[i];
@@ -361,77 +435,43 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
     ).animate(delay: (index * 70).ms).fadeIn().slideY(begin: 0.2);
   }
 
-  Widget _buildFiltersAndGrid() {
+  Widget _buildFiltersAndGrid(bool isMobile, double width) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Text(
-              "All Inquiries",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const Spacer(),
-            // Filter pills
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                  ),
-                ],
+        if (isMobile)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "All Inquiries",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
-              child: Row(
-                children: _filters.map((f) {
-                  final sel = _activeFilter == f;
-                  return GestureDetector(
-                    onTap: () => setState(() => _activeFilter = f),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: sel ? AppColors.primaryRed : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: sel
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.primaryRed.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  blurRadius: 6,
-                                ),
-                              ]
-                            : [],
-                      ),
-                      child: Text(
-                        f,
-                        style: TextStyle(
-                          fontWeight: sel ? FontWeight.bold : FontWeight.w500,
-                          fontSize: 13,
-                          color: sel ? Colors.white : Colors.grey.shade600,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+              const SizedBox(height: 16),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: _buildFilterTabs(),
               ),
-            ),
-          ],
-        ),
+            ],
+          )
+        else
+          Row(
+            children: [
+              const Text(
+                "All Inquiries",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              _buildFilterTabs(),
+            ],
+          ),
         const SizedBox(height: 24),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 1.6,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: width < 600 ? 1 : (width < 900 ? 2 : (width < 1400 ? 3 : 4)),
+            childAspectRatio: width < 600 ? 1.4 : 1.6,
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
           ),
@@ -439,6 +479,59 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
           itemBuilder: (_, i) => _inquiryCard(_filtered[i], i),
         ),
       ],
+    );
+  }
+
+  Widget _buildFilterTabs() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Row(
+        children: _filters.map((f) {
+          final sel = _activeFilter == f;
+          return GestureDetector(
+            onTap: () => setState(() => _activeFilter = f),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              decoration: BoxDecoration(
+                color: sel ? AppColors.primaryRed : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: sel
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primaryRed.withValues(
+                            alpha: 0.2,
+                          ),
+                          blurRadius: 6,
+                        ),
+                      ]
+                    : [],
+              ),
+              child: Text(
+                f,
+                style: TextStyle(
+                  fontWeight: sel ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 13,
+                  color: sel ? Colors.white : Colors.grey.shade600,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -637,7 +730,8 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
   }
 
   // ── ADD INQUIRY SHEET ──
-  Widget _buildAddSheet(BuildContext context) {
+  Widget _buildAddSheet(BuildContext context, bool isMobile) {
+
     return GestureDetector(
       onTap: () => setState(() => _showAddSheet = false),
       child: Container(
@@ -648,7 +742,7 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
             onTap: () {}, // prevent closing when tapping inside
             child:
                 Container(
-                  width: 480,
+                  width: isMobile ? double.infinity : 480,
                   color: Colors.white,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
