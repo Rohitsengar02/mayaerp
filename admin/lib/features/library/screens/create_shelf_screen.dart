@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../../core/services/shelf_service.dart';
 
 class CreateShelfScreen extends StatefulWidget {
   const CreateShelfScreen({super.key});
@@ -10,6 +11,12 @@ class CreateShelfScreen extends StatefulWidget {
 
 class _CreateShelfScreenState extends State<CreateShelfScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _aisleController = TextEditingController();
+  final _capacityController = TextEditingController();
+  final _descController = TextEditingController();
+
+  bool _isSaving = false;
 
   String? _selectedCategory;
   final List<String> _categories = [
@@ -20,6 +27,44 @@ class _CreateShelfScreenState extends State<CreateShelfScreen> {
     "Physics",
     "General",
   ];
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _aisleController.dispose();
+    _capacityController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createShelf() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select category")));
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await ShelfService.createShelf({
+        'name': _nameController.text,
+        'aisle': _aisleController.text,
+        'capacity': int.tryParse(_capacityController.text) ?? 100,
+        'category': _selectedCategory,
+        'description': _descController.text,
+      });
+      if (mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Shelf created successfully")));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,11 +90,7 @@ class _CreateShelfScreenState extends State<CreateShelfScreen> {
               if (!isMobile)
                 Padding(
                   padding: const EdgeInsets.only(right: 24.0, top: 10, bottom: 10),
-                  child: _primaryActionBtn("Create Shelf", Icons.check_circle_outline, () {
-                    if (_formKey.currentState!.validate()) {
-                      Navigator.pop(context);
-                    }
-                  }),
+                  child: _primaryActionBtn(_isSaving ? "Creating..." : "Create Shelf", Icons.check_circle_outline, _isSaving ? () {} : _createShelf),
                 )
             ],
           ),
@@ -69,11 +110,7 @@ class _CreateShelfScreenState extends State<CreateShelfScreen> {
                         const SizedBox(height: 32),
                         SizedBox(
                           width: double.infinity,
-                          child: _primaryActionBtn("Create Shelf", Icons.check_circle_outline, () {
-                            if (_formKey.currentState!.validate()) {
-                              Navigator.pop(context);
-                            }
-                          }, isMobile: true),
+                          child: _primaryActionBtn(_isSaving ? "Creating..." : "Create Shelf", Icons.check_circle_outline, _isSaving ? () {} : _createShelf, isMobile: true),
                         ),
                       ],
                     ],
@@ -112,27 +149,27 @@ class _CreateShelfScreenState extends State<CreateShelfScreen> {
           const SizedBox(height: 24),
           Row(
             children: [
-              Expanded(child: _textField("Shelf Name", "e.g. CS-A1", Icons.storage_rounded)),
+              Expanded(child: _textField("Shelf Name", "e.g. CS-A1", Icons.storage_rounded, controller: _nameController)),
               const SizedBox(width: 20),
-              Expanded(child: _textField("Aisle", "e.g. A", Icons.map_rounded)),
+              Expanded(child: _textField("Aisle", "e.g. A", Icons.map_rounded, controller: _aisleController)),
             ],
           ),
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _textField("Capacity (Books)", "e.g. 200", Icons.inventory_2_rounded, isNumber: true)),
+              Expanded(child: _textField("Capacity (Books)", "e.g. 200", Icons.inventory_2_rounded, isNumber: true, controller: _capacityController)),
               const SizedBox(width: 20),
               Expanded(child: _dropdown("Category / Subject", _categories, _selectedCategory, (v) => setState(() => _selectedCategory = v))),
             ],
           ),
           const SizedBox(height: 20),
-          _textField("Location Description", "e.g. First floor, North wing near the windows...", Icons.location_on_rounded, maxLines: 2),
+          _textField("Location Description", "e.g. First floor, North wing near the windows...", Icons.location_on_rounded, maxLines: 2, controller: _descController),
         ],
       ),
     ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1);
   }
 
-  Widget _textField(String label, String hint, IconData icon, {bool isNumber = false, int maxLines = 1}) {
+  Widget _textField(String label, String hint, IconData icon, {TextEditingController? controller, bool isNumber = false, int maxLines = 1}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -142,7 +179,9 @@ class _CreateShelfScreenState extends State<CreateShelfScreen> {
         ),
         const SizedBox(height: 8),
         TextFormField(
+          controller: controller,
           keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+          validator: (v) => v == null || v.isEmpty ? 'Field required' : null,
           maxLines: maxLines,
           decoration: InputDecoration(
             hintText: hint,

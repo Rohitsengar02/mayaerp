@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/app_constants.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/services/library_service.dart';
 import 'issue_book_screen.dart';
+import 'package:intl/intl.dart';
 
 class LibraryManagementScreen extends StatefulWidget {
   const LibraryManagementScreen({super.key});
@@ -13,34 +15,46 @@ class LibraryManagementScreen extends StatefulWidget {
 }
 
 class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
-  final List<Map<String, dynamic>> _issuedBooks = [
-    {
-      "student": "Alice Smith",
-      "roll": "MIT-2024-001",
-      "book": "Flutter for Beginners",
-      "date": "Feb 20, 2026",
-      "due": "Mar 07, 2026",
-      "status": "Active",
-    },
-    {
-      "student": "Bob Jones",
-      "roll": "MIT-2023-015",
-      "book": "Algorithms (Cormen)",
-      "date": "Jan 28, 2026",
-      "due": "Feb 12, 2026",
-      "status": "Overdue",
-    },
-    {
-      "student": "Charlie Brown",
-      "roll": "MIT-2022-042",
-      "book": "Psychology 101",
-      "date": "Feb 28, 2026",
-      "due": "Mar 15, 2026",
-      "status": "Active",
-    },
-  ];
-
+  List<dynamic> _circulation = [];
+  Map<String, dynamic> _stats = {};
+  bool _isLoading = false;
   String _issuedSearchQuery = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final circ = await LibraryService.getCirculation();
+      final stats = await LibraryService.getLibraryStats();
+      setState(() {
+        _circulation = circ;
+        _stats = stats;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Error: $e");
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _returnBook(String id) async {
+    try {
+      await LibraryService.returnBook(id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Book returned successfully")),
+      );
+      _loadData();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -51,6 +65,7 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
           backgroundColor: const Color(0xFFF8F6F6),
           body: Column(
             children: [
+              if (_isLoading) const LinearProgressIndicator(),
               _buildHeader(isMobile),
               Expanded(
                 child: SingleChildScrollView(
@@ -130,13 +145,14 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
                       "Issue Book",
                       AppColors.primaryRed,
                       Colors.white,
-                      () {
-                        Navigator.push(
+                      () async {
+                        final res = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const IssueBookScreen(),
                           ),
                         );
+                        if (res == true) _loadData();
                       },
                     ),
                   ],
@@ -164,13 +180,14 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
                     "Issue",
                     AppColors.primaryRed,
                     Colors.white,
-                    () {
-                      Navigator.push(
+                    () async {
+                      final res = await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => const IssueBookScreen(),
                         ),
                       );
+                      if (res == true) _loadData();
                     },
                     isMobile: true,
                   ),
@@ -241,26 +258,26 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
     final stats = [
       _libStat(
         "Issued Hub",
-        "1,840",
+        "${_stats['activeIssues'] ?? 0}",
         Icons.bookmark_added_rounded,
         const [Color(0xFF6366F1), Color(0xFF4F46E5), Color(0xFF3730A3)],
-        "8% of stock",
+        "${_stats['totalStock'] != 0 ? (((_stats['activeIssues'] ?? 0) / _stats['totalStock']) * 100).toStringAsFixed(1) : 0}% of stock",
         isMobile: isMobile,
       ),
       _libStat(
-        "Fine Ledger",
-        "₹12,200",
-        Icons.currency_rupee_rounded,
+        "Overdue Books",
+        "${_stats['overdue'] ?? 0}",
+        Icons.warning_rounded,
         const [Color(0xFFFB7185), Color(0xFFE11D48), Color(0xFFBE123C)],
-        "94% collected",
+        "Require attention",
         isMobile: isMobile,
       ),
       _libStat(
-        "Daily Traffic",
-        "342",
-        Icons.groups_rounded,
+        "Total Stock",
+        "${_stats['totalStock'] ?? 0}",
+        Icons.inventory_2_rounded,
         const [Color(0xFF34D399), Color(0xFF059669), Color(0xFF047857)],
-        "Peak at 2 PM",
+        "Books available",
         isMobile: isMobile,
       ),
     ];
@@ -384,10 +401,11 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
   }
 
   Widget _buildCirculationLedger(bool isMobile) {
-    final filteredIssues = _issuedBooks.where((b) {
+    final filteredIssues = _circulation.where((b) {
       final query = _issuedSearchQuery.toLowerCase();
-      return b['student'].toLowerCase().contains(query) ||
-          b['roll'].toLowerCase().contains(query);
+      final studentName = "${b['student']['firstName']} ${b['student']['lastName']}".toLowerCase();
+      final studentId = b['student']['studentId'].toLowerCase();
+      return studentName.contains(query) || studentId.contains(query);
     }).toList();
 
     return Container(
@@ -493,14 +511,14 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        data['student'],
+                        "${data['student']['firstName']} ${data['student']['lastName']}",
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
                       ),
                       Text(
-                        data['roll'],
+                        data['student']['studentId'],
                         style: TextStyle(
                           color: Colors.grey.shade400,
                           fontSize: 11,
@@ -521,15 +539,15 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        data['book'],
+                        data['book']['title'],
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
                       ),
-                      const Text(
-                        "Lent on Card",
-                        style: TextStyle(color: Colors.grey, fontSize: 11),
+                      Text(
+                        data['book']['author'],
+                        style: const TextStyle(color: Colors.grey, fontSize: 11),
                       ),
                     ],
                   ),
@@ -542,7 +560,7 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
                       style: TextStyle(color: Colors.grey, fontSize: 11),
                     ),
                     Text(
-                      data['due'],
+                      DateFormat('MMM dd, yyyy').format(DateTime.parse(data['dueDate'])),
                       style: TextStyle(
                         color: isOverdue ? Colors.red : Colors.black,
                         fontWeight: FontWeight.bold,
@@ -584,14 +602,14 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  data['student'],
+                  "${data['student']['firstName']} ${data['student']['lastName']}",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),
                 ),
                 Text(
-                  data['roll'],
+                  data['student']['studentId'],
                   style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
                 ),
               ],
@@ -602,15 +620,15 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  data['book'],
+                  data['book']['title'],
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),
                 ),
-                const Text(
-                  "Lent on Library Card",
-                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                Text(
+                  data['book']['author'],
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
                 ),
               ],
             ),
@@ -623,7 +641,7 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
                 style: TextStyle(color: Colors.grey, fontSize: 11),
               ),
               Text(
-                data['due'],
+                DateFormat('MMM dd, yyyy').format(DateTime.parse(data['dueDate'])),
                 style: TextStyle(
                   color: isOverdue ? Colors.red : Colors.black,
                   fontWeight: FontWeight.bold,
@@ -650,27 +668,19 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
         });
       },
       itemBuilder: (context) => [
-        _statusMenuItem("Active", Colors.blue),
-        _statusMenuItem("Overdue", Colors.red),
-        _statusMenuItem("Returned", Colors.green),
-        _statusMenuItem("Lost", Colors.orange),
-      ],
-    );
-  }
-
-  PopupMenuItem<String> _statusMenuItem(String val, Color color) {
-    return PopupMenuItem(
-      value: val,
-      child: Row(
-        children: [
-          CircleAvatar(radius: 4, backgroundColor: color),
-          const SizedBox(width: 12),
-          Text(
-            val,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        if (data['status'] != 'Returned')
+          PopupMenuItem(
+            value: "Returned",
+            onTap: () => _returnBook(data['_id']),
+            child: const Row(
+              children: [
+                CircleAvatar(radius: 4, backgroundColor: Colors.green),
+                SizedBox(width: 12),
+                Text("Mark as Returned", style: TextStyle(fontSize: 13)),
+              ],
+            ),
           ),
-        ],
-      ),
+      ],
     );
   }
 

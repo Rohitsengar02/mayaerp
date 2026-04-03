@@ -3,6 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/app_constants.dart';
 import '../../../core/app_theme.dart';
 import 'create_user_screen.dart';
+import '../../../core/services/user_service.dart';
+import 'package:intl/intl.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -14,88 +16,63 @@ class UserManagementScreen extends StatefulWidget {
 class _UserManagementScreenState extends State<UserManagementScreen> {
   String _selectedFilter = 'All';
 
-  final List<Map<String, dynamic>> _users = [
-    {
-      "name": "Robert Fox",
-      "email": "robert.fox@maya.edu",
-      "role": "Admin",
-      "dept": "Administration",
-      "status": "Active",
-      "phone": "+91 98765 43210",
-      "joined": "Jan 2023",
-      "avatar": "https://i.pravatar.cc/150?img=11",
-    },
-    {
-      "name": "Annette Black",
-      "email": "annette.b@maya.edu",
-      "role": "Staff",
-      "dept": "Academic",
-      "status": "Active",
-      "phone": "+91 98765 43211",
-      "joined": "Mar 2022",
-      "avatar": "https://i.pravatar.cc/150?img=47",
-    },
-    {
-      "name": "Cody Fisher",
-      "email": "cody.f@maya.edu",
-      "role": "Accountant",
-      "dept": "Finance",
-      "status": "Inactive",
-      "phone": "+91 98765 43212",
-      "joined": "Jul 2021",
-      "avatar": "https://i.pravatar.cc/150?img=33",
-    },
-    {
-      "name": "Jane Cooper",
-      "email": "jane.c@maya.edu",
-      "role": "Librarian",
-      "dept": "Library",
-      "status": "Active",
-      "phone": "+91 98765 43213",
-      "joined": "Nov 2023",
-      "avatar": "https://i.pravatar.cc/150?img=48",
-    },
-    {
-      "name": "Wade Warren",
-      "email": "wade.w@maya.edu",
-      "role": "Faculty",
-      "dept": "Academic",
-      "status": "Active",
-      "phone": "+91 98765 43214",
-      "joined": "Aug 2020",
-      "avatar": "https://i.pravatar.cc/150?img=32",
-    },
-    {
-      "name": "Esther Howard",
-      "email": "esther.h@maya.edu",
-      "role": "HOD",
-      "dept": "Academic",
-      "status": "Active",
-      "phone": "+91 98765 43215",
-      "joined": "Feb 2019",
-      "avatar": "https://i.pravatar.cc/150?img=45",
-    },
-    {
-      "name": "Cameron Williamson",
-      "email": "cam.w@maya.edu",
-      "role": "Staff",
-      "dept": "HR",
-      "status": "Inactive",
-      "phone": "+91 98765 43216",
-      "joined": "Oct 2022",
-      "avatar": "https://i.pravatar.cc/150?img=12",
-    },
-    {
-      "name": "Brooklyn Simmons",
-      "email": "brook.s@maya.edu",
-      "role": "Admin",
-      "dept": "IT Support",
-      "status": "Active",
-      "phone": "+91 98765 43217",
-      "joined": "May 2021",
-      "avatar": "https://i.pravatar.cc/150?img=49",
-    },
-  ];
+  List<dynamic> _users = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
+  }
+
+  Future<void> _loadUsers() async {
+    try {
+      setState(() => _isLoading = true);
+      final data = await UserService.getAllUsers();
+      setState(() {
+        _users = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading users: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleDelete(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete User'),
+        content: const Text('Are you sure you want to delete this user?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await UserService.deleteUser(id);
+        _loadUsers();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting user: $e')),
+          );
+        }
+      }
+    }
+  }
 
   final List<String> _filters = [
     'All',
@@ -106,7 +83,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     'Librarian',
   ];
 
-  List<Map<String, dynamic>> get _filtered => _selectedFilter == 'All'
+  List<dynamic> get _filtered => _selectedFilter == 'All'
       ? _users
       : _users.where((u) => u['role'] == _selectedFilter).toList();
 
@@ -132,24 +109,26 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               _buildHeader(context, isMobile),
 
               Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(isMobile ? 20 : 32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── STATS ROW ──
-                      _buildStatsRow(stats, isMobile),
-                      SizedBox(height: isMobile ? 24 : 32),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : SingleChildScrollView(
+                        padding: EdgeInsets.all(isMobile ? 20 : 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // ── STATS ROW ──
+                            _buildStatsRow(stats, isMobile),
+                            SizedBox(height: isMobile ? 24 : 32),
 
-                      // ── FILTERS ──
-                      _buildFilters(isMobile),
-                      SizedBox(height: isMobile ? 24 : 32),
+                            // ── FILTERS ──
+                            _buildFilters(isMobile),
+                            SizedBox(height: isMobile ? 24 : 32),
 
-                      // ── USER CARDS GRID ──
-                      _buildUsersGrid(isMobile, isNarrow),
-                    ],
-                  ),
-                ),
+                            // ── USER CARDS GRID ──
+                            _buildUsersGrid(isMobile, isNarrow),
+                          ],
+                        ),
+                      ),
               ),
             ],
           ),
@@ -265,7 +244,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         onPressed: () => Navigator.push(
           context,
           _slideRoute(const CreateUserScreen()),
-        ),
+        ).then((_) => _loadUsers()),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -624,13 +603,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     ),
                     child: CircleAvatar(
                       radius: 40,
-                      backgroundImage: NetworkImage(user['avatar']),
+                      backgroundImage: NetworkImage(user['profilePhoto'] ?? 'https://ui-avatars.com/api/?name=${user['firstName']}+${user['lastName']}&background=random'),
                     ),
                   ),
                   const SizedBox(height: 16),
                   // Name
                   Text(
-                    user['name'],
+                    "${user['firstName'] ?? ''} ${user['lastName'] ?? ''}",
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 16,
@@ -653,7 +632,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     alignment: WrapAlignment.center,
                     children: [
                       _chip(user['role'], roleColor),
-                      _chip(user['dept'], Colors.grey),
+                      _chip(user['department'], Colors.grey),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -665,7 +644,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       Icon(Icons.phone, size: 12, color: Colors.grey.shade400),
                       const SizedBox(width: 4),
                       Text(
-                        user['phone'],
+                        user['phone'] ?? 'N/A',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade500,
@@ -684,7 +663,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        "Joined ${user['joined']}",
+                        "Joined ${user['createdAt'] != null ? DateFormat('MMM yyyy').format(DateTime.parse(user['createdAt'])) : 'N/A'}",
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade500,
@@ -702,7 +681,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         child: _actionBtn(
                           Icons.edit_note_rounded,
                           Colors.blue,
-                          () {},
+                          () => Navigator.push(
+                            context,
+                            _slideRoute(CreateUserScreen(user: user)),
+                          ).then((_) => _loadUsers()),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -718,7 +700,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         child: _actionBtn(
                           Icons.delete_outline_rounded,
                           Colors.red,
-                          () {},
+                          () => _handleDelete(user['_id']),
                         ),
                       ),
                     ],
@@ -732,7 +714,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     ).animate(delay: (index * 60).ms).fadeIn().slideY(begin: 0.15);
   }
 
-  Widget _chip(String label, Color color) {
+  Widget _chip(String? label, Color color) {
+    if (label == null || label.isEmpty) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

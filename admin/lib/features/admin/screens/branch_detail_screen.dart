@@ -3,6 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/app_constants.dart';
 import 'create_course_screen.dart';
 import 'course_detail_screen.dart';
+import '../../../core/services/course_service.dart';
+import '../../../core/services/student_service.dart';
 
 class BranchDetailScreen extends StatefulWidget {
   final Map<String, dynamic> branch;
@@ -20,53 +22,40 @@ class BranchDetailScreen extends StatefulWidget {
 
 class _BranchDetailScreenState extends State<BranchDetailScreen> {
   Map<String, dynamic>? _selectedCourse;
+  List<dynamic> _courses = [];
+  bool _isLoading = true;
 
-  final List<Map<String, dynamic>> _courses = [
-    {
-      "name": "B.Tech Computer Science",
-      "code": "BCSE-2024",
-      "duration": "4 Years",
-      "students": 120,
-      "faculty": 12,
-      "credits": 160,
-      "status": "Active",
-      "type": "Full-Time",
-      "image": "https://api.dicebear.com/7.x/shapes/svg?seed=BCSE",
-    },
-    {
-      "name": "M.Tech Data Science",
-      "code": "MDS-2024",
-      "duration": "2 Years",
-      "students": 40,
-      "faculty": 5,
-      "credits": 80,
-      "status": "Active",
-      "type": "Research",
-      "image": "https://api.dicebear.com/7.x/shapes/svg?seed=MDS",
-    },
-    {
-      "name": "Artificial Intelligence",
-      "code": "BAI-2024",
-      "duration": "4 Years",
-      "students": 60,
-      "faculty": 8,
-      "credits": 162,
-      "status": "Pending",
-      "type": "Specialization",
-      "image": "https://api.dicebear.com/7.x/shapes/svg?seed=BAI",
-    },
-    {
-      "name": "Cyber Security",
-      "code": "BCS-2024",
-      "duration": "4 Years",
-      "students": 45,
-      "faculty": 6,
-      "credits": 158,
-      "status": "Active",
-      "type": "Vocational",
-      "image": "https://api.dicebear.com/7.x/shapes/svg?seed=BCS",
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadCourses();
+  }
+
+  Future<void> _loadCourses() async {
+    try {
+      setState(() => _isLoading = true);
+      final courses = await CourseService.getAllCourses(branchId: widget.branch['_id']);
+      final students = await StudentService.getAllStudents();
+      
+      for (var c in courses) {
+        c['realStudentCount'] = students.where((s) => s['selectedProgram'] == c['_id'] && s['selectedBranch'] == widget.branch['_id']).length;
+      }
+      
+      if (mounted) {
+        setState(() {
+          _courses = courses;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading courses: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +130,11 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                           ],
                         ),
                       const SizedBox(height: 32),
-                      _buildCourseGrid(width, crossAxisCount, childAspectRatio),
+                      _isLoading 
+                          ? const Center(child: Padding(padding: EdgeInsets.all(40.0), child: CircularProgressIndicator()))
+                          : _courses.isEmpty
+                              ? const Center(child: Padding(padding: EdgeInsets.all(40.0), child: Text("No courses registered yet.")))
+                              : _buildCourseGrid(width, crossAxisCount, childAspectRatio),
                     ],
                   ),
                 ),
@@ -192,12 +185,17 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CreateCourseScreen(branch: widget.branch),
-                  ),
-                ),
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CreateCourseScreen(branch: widget.branch),
+                    ),
+                  );
+                  if (result == true) {
+                    _loadCourses();
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
@@ -252,12 +250,17 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
           ),
           const Spacer(),
           ElevatedButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => CreateCourseScreen(branch: widget.branch),
-              ),
-            ),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CreateCourseScreen(branch: widget.branch),
+                ),
+              );
+              if (result == true) {
+                _loadCourses();
+              }
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
@@ -314,6 +317,17 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                 letterSpacing: -1,
                 height: 1.1,
               ),
+            ),
+            const SizedBox(height: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _bannerRow(Icons.person_pin_rounded, "Dean: ${widget.branch['dean'] ?? 'N/A'}"),
+                const SizedBox(height: 8),
+                _bannerRow(Icons.email_outlined, "${widget.branch['contactEmail'] ?? 'N/A'}"),
+                const SizedBox(height: 8),
+                _bannerRow(Icons.location_on_rounded, "${widget.branch['location'] ?? 'N/A'} - Est: ${widget.branch['establishedYear'] ?? 'N/A'}"),
+              ],
             ),
             const SizedBox(height: 24),
             Row(
@@ -416,6 +430,52 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          const SizedBox(width: 16),
+                          const Icon(
+                            Icons.email_outlined,
+                            color: Colors.white70,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "${widget.branch['contactEmail'] ?? 'N/A'}",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_rounded,
+                            color: Colors.white70,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "${widget.branch['location'] ?? 'N/A'}",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Icon(
+                            Icons.calendar_month_rounded,
+                            color: Colors.white70,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Established: ${widget.branch['establishedYear'] ?? 'N/A'}",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -443,6 +503,27 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
         ],
       ),
     ).animate().fadeIn().scale(begin: const Offset(0.98, 0.98));
+  }
+
+  Widget _bannerRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white70, size: 14),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _bannerStat(String val, String label, {bool isMobile = false}) {
@@ -513,7 +594,7 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
     final isMobile = width < 700;
 
     return InkWell(
-      onTap: () => setState(() => _selectedCourse = course),
+      onTap: null,
       borderRadius: BorderRadius.circular(24),
       child: Container(
         padding: EdgeInsets.all(isDesktop ? 28 : 20),
@@ -541,7 +622,7 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                     color: const Color(0xFFF8F6F6),
                     borderRadius: BorderRadius.circular(16),
                     image: DecorationImage(
-                      image: NetworkImage(course['image']),
+                      image: NetworkImage(course['image'] ?? "https://api.dicebear.com/7.x/shapes/svg?seed=${course['code']}"),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -561,7 +642,7 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          course['code'],
+                          course['code'] ?? "",
                           style: TextStyle(
                             color: AppColors.primaryRed,
                             fontSize: 9,
@@ -571,7 +652,7 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        course['name'],
+                        course['name'] ?? "",
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: isDesktop ? 18 : 16,
@@ -588,9 +669,21 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
             const SizedBox(height: 20),
             Row(
               children: [
-                _infoRow(Icons.timer_outlined, course['duration']),
+                _infoRow(Icons.timer_outlined, "${course['duration'] ?? 4} Years"),
+                const SizedBox(width: 12),
+                _infoRow(Icons.person_outline_rounded, course['coordinator'] ?? "No Coordinator"),
                 const Spacer(),
-                _statusBadge(course['status']),
+                _statusBadge(course['status'] ?? "Active"),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _infoRow(Icons.payments_outlined, "₹${course['tuitionFee'] ?? 0} Total Fee"),
+                if (course['labIndex'] != null) ...[
+                  const SizedBox(width: 12),
+                  _infoRow(Icons.biotech_outlined, "Lab: ${course['labIndex']}"),
+                ],
               ],
             ),
             const SizedBox(height: 20),
@@ -602,17 +695,17 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                 _miniDetail(
                   Icons.groups_rounded,
                   "Students",
-                  "${course['students']}",
+                  "${course['realStudentCount'] ?? 0}",
                 ),
                 _miniDetail(
                   Icons.stars_rounded,
-                  "Credits",
-                  "${course['credits']}",
+                  "Intake",
+                  "${course['intakeCapacity'] ?? 60}",
                 ),
                 _miniDetail(
                   Icons.school_rounded,
-                  "Faculty",
-                  "${course['faculty']}",
+                  "Fee/Sem",
+                  "₹${course['tuitionFee'] ?? 0}",
                 ),
               ],
             ),
@@ -620,7 +713,7 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
             SizedBox(
               width: double.infinity,
               child: TextButton(
-                onPressed: () {},
+                onPressed: () => setState(() => _selectedCourse = course),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   backgroundColor: const Color(0xFFF8F6F6),
@@ -629,7 +722,7 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
                   ),
                 ),
                 child: const Text(
-                  "View Curriculum",
+                  "View Details",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,

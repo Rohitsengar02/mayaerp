@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_constants.dart';
 import '../../core/app_theme.dart';
 import '../features/onboarding/screens/showcase_screen.dart';
+import '../core/services/auth_service.dart';
 
 class AdminSidebar extends StatelessWidget {
   final int selectedIndex;
@@ -153,10 +154,15 @@ class AdminSidebar extends StatelessWidget {
             "Sign Out",
             -1,
             color: AppColors.primaryRed,
-            onTap: () => Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const ShowcaseScreen()),
-              (route) => false,
-            ),
+            onTap: () async {
+              await AuthService.logout();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const ShowcaseScreen()),
+                  (route) => false,
+                );
+              }
+            },
           ),
           const SizedBox(height: 20),
         ],

@@ -5,6 +5,10 @@ import '../../../core/app_theme.dart';
 import 'mark_attendance_screen.dart';
 import 'create_exam_screen.dart';
 import 'publish_result_screen.dart';
+import '../../../core/services/branch_service.dart';
+import '../../../core/services/course_service.dart';
+import '../../../core/services/student_service.dart';
+import '../../../core/services/attendance_service.dart';
 
 class AttendanceExamScreen extends StatefulWidget {
   const AttendanceExamScreen({super.key});
@@ -17,72 +21,24 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   // Attendance Filters
-  String _selectedDept = 'B.Tech';
-  String _selectedCourse = 'CSE';
-  String _selectedSection = 'Section A';
-
-  final List<String> _depts = ['B.Tech', 'MBA', 'B.Sc', 'B.Com'];
-  final List<String> _courses = [
-    'CSE',
-    'ME',
-    'ECE',
-    'Finance',
-    'HR',
-    'Physics',
-    'Chemistry',
-  ];
+  List<dynamic> _branches = [];
+  List<dynamic> _courses = [];
   final List<String> _sections = ['Section A', 'Section B', 'Section C'];
 
-  final List<Map<String, dynamic>> _attendanceData = [
-    {
-      "name": "Rahul Sharma",
-      "id": "BT2034",
-      "attendance": "94%",
-      "late": 2,
-      "status": "Good",
-      "avatar": "https://i.pravatar.cc/150?img=11",
-    },
-    {
-      "name": "Sanjana Gupta",
-      "id": "BT2035",
-      "attendance": "68%",
-      "late": 5,
-      "status": "Low",
-      "avatar": "https://i.pravatar.cc/150?img=41",
-    },
-    {
-      "name": "Amit Kumar",
-      "id": "BT2036",
-      "attendance": "82%",
-      "late": 1,
-      "status": "Good",
-      "avatar": "https://i.pravatar.cc/150?img=12",
-    },
-    {
-      "name": "Priya Patel",
-      "id": "BT2037",
-      "attendance": "91%",
-      "late": 0,
-      "status": "Good",
-      "avatar": "https://i.pravatar.cc/150?img=42",
-    },
-    {
-      "name": "Karan Singh",
-      "id": "BT2038",
-      "attendance": "74%",
-      "late": 8,
-      "status": "Critical",
-      "avatar": "https://i.pravatar.cc/150?img=13",
-    },
-    {
-      "name": "Anjali Bose",
-      "id": "BT2039",
-      "attendance": "88%",
-      "late": 3,
-      "status": "Good",
-      "avatar": "https://i.pravatar.cc/150?img=43",
-    },
-  ];
+  String? _selectedDeptId;
+  String? _selectedCourseId;
+  String _selectedSection = 'Section A';
+
+  bool _isLoading = false;
+  List<dynamic> _students = [];
+  Map<String, dynamic> _statsToday = {
+    'presentToday': 0,
+    'lateToday': 0,
+    'totalStudents': 0,
+    'absentToday': 0
+  };
+
+  // Removed demo data
 
   final List<Map<String, dynamic>> _examSchedule = [
     {
@@ -123,6 +79,52 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadMetadata();
+    _loadStats();
+  }
+
+  Future<void> _loadMetadata() async {
+    setState(() => _isLoading = true);
+    try {
+      final br = await BranchService.getAllBranches();
+      final cr = await CourseService.getAllCourses();
+      setState(() {
+        _branches = br;
+        _courses = cr;
+        if (_branches.isNotEmpty) _selectedDeptId = _branches[0]['_id'];
+        if (_courses.isNotEmpty) _selectedCourseId = _courses[0]['_id'];
+      });
+      _loadStudents();
+    } catch (e) {
+      debugPrint("Error loading metadata: $e");
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final s = await AttendanceService.getAttendanceStats();
+      setState(() => _statsToday = s);
+    } catch (e) {
+      debugPrint("Error loading stats: $e");
+    }
+  }
+
+  Future<void> _loadStudents() async {
+    if (_selectedDeptId == null || _selectedCourseId == null) return;
+    setState(() => _isLoading = true);
+    try {
+      final all = await StudentService.getAllStudents();
+      setState(() {
+        _students = all.where((s) => 
+          s['selectedBranch'] == _selectedDeptId && s['selectedProgram'] == _selectedCourseId
+        ).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Error loading students: $e");
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -144,13 +146,15 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
               _buildHeader(isMobile),
               _buildTabBar(isMobile),
               Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildAttendanceTab(isMobile),
-                    _buildExamsTab(isMobile),
-                  ],
-                ),
+                child: _isLoading 
+                  ? const Center(child: CircularProgressIndicator())
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildAttendanceTab(isMobile),
+                        _buildExamsTab(isMobile),
+                      ],
+                    ),
               ),
             ],
           ),
@@ -340,29 +344,29 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
   Widget _buildAttendanceStats(bool isMobile) {
     final stats = [
       {
-        "label": "Overall Attendance",
-        "value": "88.4%",
-        "sub": "Target: 75%+",
+        "label": "Total Students",
+        "value": _statsToday['totalStudents'].toString(),
+        "sub": "Enrolled",
         "icon": Icons.analytics_rounded,
         "colors": [const Color(0xFF6366F1), const Color(0xFF818CF8)],
       },
       {
         "label": "Present Today",
-        "value": "1,248",
-        "sub": "of 1,450 students",
+        "value": _statsToday['presentToday'].toString(),
+        "sub": "at campus",
         "icon": Icons.people_rounded,
         "colors": [const Color(0xFF10B981), const Color(0xFF34D399)],
       },
       {
-        "label": "On Leave",
-        "value": "42",
-        "sub": "Leaves",
+        "label": "On Late",
+        "value": _statsToday['lateToday'].toString(),
+        "sub": "Arrivals",
         "icon": Icons.event_busy_rounded,
         "colors": [const Color(0xFFF59E0B), const Color(0xFFFBBF24)],
       },
       {
-        "label": "Low Attendance",
-        "value": "64",
+        "label": "Absent Today",
+        "value": _statsToday['absentToday'].toString(),
         "sub": "Alerts",
         "icon": Icons.warning_amber_rounded,
         "colors": [const Color(0xFFEC1349), const Color(0xFFFF6B6B)],
@@ -482,18 +486,26 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
                     Expanded(
                       child: _filterDropdown(
                         "Dept",
-                        _selectedDept,
-                        _depts,
-                        (v) => setState(() => _selectedDept = v!),
+                        _branches.firstWhere((b) => b['_id'] == _selectedDeptId, orElse: () => {'name': ''})['name'],
+                        _branches.map((b) => b['name'].toString()).toList(),
+                        (v) {
+                           final id = _branches.firstWhere((b) => b['name'] == v)['_id'];
+                           setState(() => _selectedDeptId = id);
+                           _loadStudents();
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _filterDropdown(
                         "Course",
-                        _selectedCourse,
-                        _courses,
-                        (v) => setState(() => _selectedCourse = v!),
+                        _courses.firstWhere((c) => c['_id'] == _selectedCourseId, orElse: () => {'name': ''})['name'],
+                        _courses.map((c) => c['name'].toString()).toList(),
+                        (v) {
+                           final id = _courses.firstWhere((c) => c['name'] == v)['_id'];
+                           setState(() => _selectedCourseId = id);
+                           _loadStudents();
+                        },
                       ),
                     ),
                   ],
@@ -503,7 +515,10 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
                   "Section",
                   _selectedSection,
                   _sections,
-                  (v) => setState(() => _selectedSection = v!),
+                  (v) {
+                    setState(() => _selectedSection = v!);
+                    _loadStudents();
+                  },
                 ),
               ],
             ),
@@ -545,18 +560,26 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
           Expanded(
             child: _filterDropdown(
               "Department",
-              _selectedDept,
-              _depts,
-              (v) => setState(() => _selectedDept = v!),
+              _branches.firstWhere((b) => b['_id'] == _selectedDeptId, orElse: () => {'name': ''})['name'],
+              _branches.map((b) => b['name'].toString()).toList(),
+              (v) {
+                 final id = _branches.firstWhere((b) => b['name'] == v)['_id'];
+                 setState(() => _selectedDeptId = id);
+                 _loadStudents();
+              },
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: _filterDropdown(
               "Course",
-              _selectedCourse,
-              _courses,
-              (v) => setState(() => _selectedCourse = v!),
+              _courses.firstWhere((c) => c['_id'] == _selectedCourseId, orElse: () => {'name': ''})['name'],
+              _courses.map((c) => c['name'].toString()).toList(),
+              (v) {
+                 final id = _courses.firstWhere((c) => c['name'] == v)['_id'];
+                 setState(() => _selectedCourseId = id);
+                 _loadStudents();
+              },
             ),
           ),
           const SizedBox(width: 16),
@@ -565,7 +588,10 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
               "Section",
               _selectedSection,
               _sections,
-              (v) => setState(() => _selectedSection = v!),
+              (v) {
+                setState(() => _selectedSection = v!);
+                _loadStudents();
+              },
             ),
           ),
           const SizedBox(width: 24),
@@ -602,13 +628,11 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
       return ListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: _attendanceData.length,
+        itemCount: _students.length,
         itemBuilder: (context, i) {
-          final data = _attendanceData[i];
-          final status = data['status'] as String;
-          final statusColor = status == 'Good'
-              ? Colors.green
-              : (status == 'Low' ? Colors.orange : Colors.red);
+          final data = _students[i];
+          final status = "Good"; // Placeholder or calc from history
+          final statusColor = Colors.green;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -623,7 +647,7 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundImage: NetworkImage(data['avatar']),
+                      backgroundImage: NetworkImage(data['avatar'] ?? "https://ui-avatars.com/api/?name=${data['firstName']}"),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -631,14 +655,14 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            data['name'],
+                            "${data['firstName']} ${data['lastName']}",
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
                           ),
                           Text(
-                            data['id'],
+                            data['studentId'] ?? "N/A",
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontSize: 11,
@@ -654,10 +678,10 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _miniStat("Attendance", data['attendance'], Colors.black),
+                    _miniStat("City", data['city'] ?? "N/A", Colors.black),
                     _miniStat(
-                      "Late Count",
-                      data['late'].toString(),
+                      "Phone",
+                      data['phone'] ?? "N/A",
                       Colors.orange,
                     ),
                     Row(
@@ -774,12 +798,10 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
             ),
           ),
           // Table Body
-          ...List.generate(_attendanceData.length, (i) {
-            final data = _attendanceData[i];
-            final status = data['status'] as String;
-            final statusColor = status == 'Good'
-                ? Colors.green
-                : (status == 'Low' ? Colors.orange : Colors.red);
+          ...List.generate(_students.length, (i) {
+            final data = _students[i];
+            final status = "Good";
+            final statusColor = Colors.green;
 
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -794,14 +816,14 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
                       children: [
                         CircleAvatar(
                           radius: 18,
-                          backgroundImage: NetworkImage(data['avatar']),
+                          backgroundImage: NetworkImage(data['avatar'] ?? "https://ui-avatars.com/api/?name=${data['firstName']}"),
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          data['name'],
+                          "${data['firstName']} ${data['lastName']}",
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                            fontSize: 14,
                           ),
                         ),
                       ],
@@ -810,7 +832,7 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
                   Expanded(
                     flex: 2,
                     child: Text(
-                      data['id'],
+                      data['studentId'] ?? "N/A",
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: 13,
@@ -821,7 +843,7 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
                   Expanded(
                     flex: 2,
                     child: Text(
-                      data['attendance'],
+                      data['city'] ?? "N/A",
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 14,
@@ -831,7 +853,7 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
                   Expanded(
                     flex: 2,
                     child: Text(
-                      data['late'].toString(),
+                      data['phone'] ?? "N/A",
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -1015,9 +1037,13 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
                 Expanded(
                   child: _filterDropdown(
                     "Course",
-                    _selectedCourse,
-                    _courses,
-                    (v) => setState(() => _selectedCourse = v!),
+                    _courses.firstWhere((c) => c['_id'] == _selectedCourseId, orElse: () => {'name': ''})['name'],
+                    _courses.map((c) => c['name'].toString()).toList(),
+                    (v) {
+                       final id = _courses.firstWhere((c) => c['name'] == v)['_id'];
+                       setState(() => _selectedCourseId = id);
+                       _loadStudents();
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1056,9 +1082,13 @@ class _AttendanceExamScreenState extends State<AttendanceExamScreen>
             width: 160,
             child: _filterDropdown(
               "Course",
-              _selectedCourse,
-              _courses,
-              (v) => setState(() => _selectedCourse = v!),
+              _courses.firstWhere((c) => c['_id'] == _selectedCourseId, orElse: () => {'name': ''})['name'],
+              _courses.map((c) => c['name'].toString()).toList(),
+              (val) {
+                 final id = _courses.firstWhere((c) => c['name'] == val)['_id'];
+                 setState(() => _selectedCourseId = id);
+                 _loadStudents();
+              },
             ),
           ),
           const SizedBox(width: 16),

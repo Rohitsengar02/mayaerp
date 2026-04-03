@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../../core/services/book_service.dart';
+import '../../../../core/services/application_service.dart';
+import '../../../../core/services/shelf_service.dart';
 
 class AddBookScreen extends StatefulWidget {
-  const AddBookScreen({super.key});
+  final dynamic book;
+  const AddBookScreen({super.key, this.book});
 
   @override
   State<AddBookScreen> createState() => _AddBookScreenState();
@@ -11,8 +16,50 @@ class AddBookScreen extends StatefulWidget {
 class _AddBookScreenState extends State<AddBookScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  late TextEditingController _titleController;
+  late TextEditingController _authorController;
+  late TextEditingController _isbnController;
+  late TextEditingController _publisherController;
+  late TextEditingController _totalController;
+  late TextEditingController _priceController;
+  late TextEditingController _remarksController;
+
   String? _selectedCategory;
   String? _selectedShelf;
+  XFile? _selectedImage;
+  bool _isSaving = false;
+  List<String> _shelves = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.book?['title'] ?? '');
+    _authorController = TextEditingController(text: widget.book?['author'] ?? '');
+    _isbnController = TextEditingController(text: widget.book?['isbn'] ?? '');
+    _publisherController = TextEditingController(text: widget.book?['publisher'] ?? '');
+    _totalController = TextEditingController(text: widget.book?['total']?.toString() ?? '');
+    _priceController = TextEditingController(text: widget.book?['price']?.toString() ?? '');
+    _remarksController = TextEditingController(text: widget.book?['remarks'] ?? '');
+    
+    _loadShelves();
+
+    if (widget.book != null) {
+      _selectedCategory = widget.book['category'];
+      _selectedShelf = widget.book['shelf'];
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _authorController.dispose();
+    _isbnController.dispose();
+    _publisherController.dispose();
+    _totalController.dispose();
+    _priceController.dispose();
+    _remarksController.dispose();
+    super.dispose();
+  }
 
   final List<String> _categories = [
     "Computer Science",
@@ -22,9 +69,74 @@ class _AddBookScreenState extends State<AddBookScreen> {
     "Physics",
   ];
 
-  final List<String> _shelves = [
-    "CS-A1", "CS-A2", "MA-B1", "LI-C3", "HI-D1",
-  ];
+  Future<void> _loadShelves() async {
+    try {
+      final data = await ShelfService.getAllShelves();
+      setState(() {
+        _shelves = data.map((e) => e['name'].toString()).toList();
+      });
+    } catch (e) {
+      debugPrint("Error loading shelves: $e");
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (image != null) {
+      setState(() => _selectedImage = image);
+    }
+  }
+
+  Future<void> _saveBook() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategory == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select category')));
+        return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      String? coverUrl = widget.book?['cover'];
+      if (_selectedImage != null) {
+        coverUrl = await ApplicationService.uploadToCloudinary(_selectedImage);
+      }
+
+      final bookData = {
+        'title': _titleController.text,
+        'author': _authorController.text,
+        'isbn': _isbnController.text,
+        'publisher': _publisherController.text,
+        'category': _selectedCategory,
+        'shelf': _selectedShelf,
+        'total': int.tryParse(_totalController.text) ?? 1,
+        'available': widget.book != null 
+            ? (widget.book['available'] + ((int.tryParse(_totalController.text) ?? 1) - (widget.book['total'] ?? 1)))
+            : (int.tryParse(_totalController.text) ?? 1),
+        'price': double.tryParse(_priceController.text) ?? 0.0,
+        'remarks': _remarksController.text,
+        'cover': coverUrl ?? "https://via.placeholder.com/400x600?text=No+Cover",
+      };
+
+      if (widget.book != null) {
+        await BookService.updateBook(widget.book['_id'], bookData);
+      } else {
+        await BookService.createBook(bookData);
+      }
+
+      if (mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.book != null ? 'Book updated successfully' : 'Book added successfully')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving book: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,9 +151,9 @@ class _AddBookScreenState extends State<AddBookScreen> {
             backgroundColor: Colors.white,
             elevation: 0,
             iconTheme: const IconThemeData(color: Colors.black87),
-            title: const Text(
-              "Add New Book",
-              style: TextStyle(
+            title: Text(
+              widget.book != null ? "Edit Book" : "Add New Book",
+              style: const TextStyle(
                 color: Colors.black87,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -51,11 +163,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
               if (!isMobile)
                 Padding(
                   padding: const EdgeInsets.only(right: 24.0, top: 10, bottom: 10),
-                  child: _primaryActionBtn("Save Book", Icons.check_circle_outline, () {
-                    if (_formKey.currentState!.validate()) {
-                      Navigator.pop(context);
-                    }
-                  }),
+                  child: _primaryActionBtn(_isSaving ? "Saving..." : "Save Book", Icons.check_circle_outline, _isSaving ? () {} : _saveBook),
                 )
             ],
           ),
@@ -73,11 +181,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
                         const SizedBox(height: 32),
                         SizedBox(
                           width: double.infinity,
-                          child: _primaryActionBtn("Save Book", Icons.check_circle_outline, () {
-                            if (_formKey.currentState!.validate()) {
-                              Navigator.pop(context);
-                            }
-                          }, isMobile: true),
+                          child: _primaryActionBtn(_isSaving ? "Saving..." : "Save Book", Icons.check_circle_outline, _isSaving ? () {} : _saveBook, isMobile: true),
                         ),
                       ],
                     )
@@ -142,34 +246,70 @@ class _AddBookScreenState extends State<AddBookScreen> {
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: () {},
+                  onTap: _pickImage,
                   borderRadius: BorderRadius.circular(16),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
+                  child: (_selectedImage != null || widget.book?['cover'] != null)
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: _selectedImage != null 
+                                ? Image.network(_selectedImage!.path, fit: BoxFit.cover)
+                                : Image.network(widget.book['cover'], fit: BoxFit.cover),
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: CircleAvatar(
+                                backgroundColor: Colors.white,
+                                radius: 14,
+                                child: IconButton(
+                                  onPressed: () {
+                                    if (_selectedImage != null) {
+                                      setState(() => _selectedImage = null);
+                                    } else {
+                                      // Clear network image (will revert to placeholder)
+                                      setState(() => widget.book['cover'] = null);
+                                    }
+                                  },
+                                  icon: const Icon(Icons.close, size: 14, color: Colors.red),
+                                  padding: EdgeInsets.zero,
+                                ),
+                              ),
                             ),
                           ],
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(Icons.cloud_upload_outlined, color: Color(0xFF4F46E5), size: 32),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              "Click to upload",
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                            ),
+                            if (widget.book?['cover'] != null) ...[
+                               const SizedBox(height: 8),
+                               const Text("(Current cover will be kept if not changed)", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                            ],
+                            const SizedBox(height: 4),
+                            Text("PNG, JPG up to 5MB", style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                          ],
                         ),
-                        child: const Icon(Icons.cloud_upload_outlined, color: Color(0xFF4F46E5), size: 32),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        "Click to uplaod",
-                        style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
-                      ),
-                      const SizedBox(height: 4),
-                      Text("PNG, JPG up to 5MB", style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
-                    ],
-                  ),
                 ),
               ),
             ),
@@ -202,13 +342,13 @@ class _AddBookScreenState extends State<AddBookScreen> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           const SizedBox(height: 24),
-          _textField("Book Title", "Enter the title of the book", Icons.book_rounded),
+          _textField("Book Title", "Enter the title of the book", Icons.book_rounded, controller: _titleController),
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _textField("Author", "Author's name", Icons.person_rounded)),
+              Expanded(child: _textField("Author", "Author's name", Icons.person_rounded, controller: _authorController)),
               const SizedBox(width: 20),
-              Expanded(child: _textField("ISBN Number", "e.g. 978-0132350884", Icons.numbers_rounded)),
+              Expanded(child: _textField("ISBN Number", "e.g. 978-0132350884", Icons.numbers_rounded, controller: _isbnController)),
             ],
           ),
           const SizedBox(height: 20),
@@ -216,7 +356,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
             children: [
               Expanded(child: _dropdown("Category", _categories, _selectedCategory, (v) => setState(() => _selectedCategory = v))),
               const SizedBox(width: 20),
-              Expanded(child: _textField("Publisher", "Publisher name", Icons.business_rounded)),
+              Expanded(child: _textField("Publisher", "Publisher name", Icons.business_rounded, controller: _publisherController)),
             ],
           ),
           const SizedBox(height: 32),
@@ -229,21 +369,21 @@ class _AddBookScreenState extends State<AddBookScreen> {
           const SizedBox(height: 24),
           Row(
             children: [
-              Expanded(child: _textField("Total Copies", "0", Icons.inventory_2_rounded, isNumber: true)),
+              Expanded(child: _textField("Total Copies", "0", Icons.inventory_2_rounded, controller: _totalController, isNumber: true)),
               const SizedBox(width: 20),
               Expanded(child: _dropdown("Shelf Location", _shelves, _selectedShelf, (v) => setState(() => _selectedShelf = v))),
             ],
           ),
           const SizedBox(height: 20),
-          _textField("Price (Optional)", "₹ 0.00", Icons.currency_rupee_rounded, isNumber: true),
+          _textField("Price (Optional)", "₹ 0.00", Icons.currency_rupee_rounded, controller: _priceController, isNumber: true),
           const SizedBox(height: 20),
-          _textField("Description / Remarks", "Any additional notes about the book...", Icons.notes_rounded, maxLines: 3),
+          _textField("Description / Remarks", "Any additional notes about the book...", Icons.notes_rounded, controller: _remarksController, maxLines: 3),
         ],
       ),
     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1);
   }
 
-  Widget _textField(String label, String hint, IconData icon, {bool isNumber = false, int maxLines = 1}) {
+  Widget _textField(String label, String hint, IconData icon, {TextEditingController? controller, bool isNumber = false, int maxLines = 1}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -253,7 +393,9 @@ class _AddBookScreenState extends State<AddBookScreen> {
         ),
         const SizedBox(height: 8),
         TextFormField(
+          controller: controller,
           keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+          validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
           maxLines: maxLines,
           decoration: InputDecoration(
             hintText: hint,

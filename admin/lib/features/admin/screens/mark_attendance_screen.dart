@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/app_constants.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/services/branch_service.dart';
+import '../../../core/services/course_service.dart';
+import '../../../core/services/student_service.dart';
+import '../../../core/services/attendance_service.dart';
+import 'package:intl/intl.dart';
 
 class MarkAttendanceScreen extends StatefulWidget {
   const MarkAttendanceScreen({super.key});
@@ -11,72 +16,151 @@ class MarkAttendanceScreen extends StatefulWidget {
 }
 
 class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
-  final List<Map<String, dynamic>> _students = [
-    {
-      "name": "Rahul Sharma",
-      "id": "BT2034",
-      "avatar": "https://i.pravatar.cc/150?img=11",
-      "isPresent": true,
-      "isLate": false,
-    },
-    {
-      "name": "Sanjana Gupta",
-      "id": "BT2035",
-      "avatar": "https://i.pravatar.cc/150?img=41",
-      "isPresent": true,
-      "isLate": false,
-    },
-    {
-      "name": "Amit Kumar",
-      "id": "BT2036",
-      "avatar": "https://i.pravatar.cc/150?img=12",
-      "isPresent": false,
-      "isLate": false,
-    },
-    {
-      "name": "Priya Patel",
-      "id": "BT2037",
-      "avatar": "https://i.pravatar.cc/150?img=42",
-      "isPresent": true,
-      "isLate": true,
-    },
-    {
-      "name": "Karan Singh",
-      "id": "BT2038",
-      "avatar": "https://i.pravatar.cc/150?img=13",
-      "isPresent": true,
-      "isLate": false,
-    },
-    {
-      "name": "Anjali Bose",
-      "id": "BT2039",
-      "avatar": "https://i.pravatar.cc/150?img=43",
-      "isPresent": false,
-      "isLate": false,
-    },
-    {
-      "name": "Vikram Das",
-      "id": "BT2040",
-      "avatar": "https://i.pravatar.cc/150?img=14",
-      "isPresent": true,
-      "isLate": false,
-    },
-    {
-      "name": "Nisha Verma",
-      "id": "BT2041",
-      "avatar": "https://i.pravatar.cc/150?img=44",
-      "isPresent": true,
-      "isLate": true,
-    },
-  ];
+  List<dynamic> _students = [];
+  List<dynamic> _branches = [];
+  List<dynamic> _courses = [];
+  List<dynamic> _subjects = [];
 
-  String? _selectedDept = 'Engineering';
-  String? _selectedCourse = 'CSE';
-  String? _selectedSection = 'Section A';
+  String? _selectedDeptId; // Maps to Branch
+  String? _selectedCourseId; // Maps to Program
+  String? _selectedSubjectCode;
+  String? _selectedSubjectName;
+  DateTime _selectedDate = DateTime.now();
+  bool _isLoading = false;
 
-  final List<String> _depts = ['Engineering', 'Management', 'Science'];
-  final List<String> _courses = ['CSE', 'ECE', 'ME', 'Finance', 'HR'];
-  final List<String> _sections = ['Section A', 'Section B', 'Section C'];
+  @override
+  void initState() {
+    super.initState();
+    _loadMetadata();
+  }
+
+  Future<void> _loadMetadata() async {
+    setState(() => _isLoading = true);
+    try {
+      final br = await BranchService.getAllBranches();
+      final cr = await CourseService.getAllCourses();
+      setState(() {
+        _branches = br;
+        _courses = cr;
+        if (_branches.isNotEmpty) _selectedDeptId = _branches[0]['_id'];
+        if (_courses.isNotEmpty) {
+          _selectedCourseId = _courses[0]['_id'];
+          _updateSubjects();
+        }
+        _isLoading = false;
+      });
+      _loadStudentsAndAttendance();
+    } catch (e) {
+      debugPrint("Error loading metadata: $e");
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _updateSubjects() {
+    if (_selectedCourseId == null) return;
+    final course = _courses.firstWhere((c) => c['_id'] == _selectedCourseId, orElse: () => null);
+    if (course != null && course['curriculum'] != null) {
+      final List<dynamic> allSubjects = [];
+      for (var sem in course['curriculum']) {
+        if (sem['subjects'] != null) {
+          allSubjects.addAll(sem['subjects']);
+        }
+      }
+      setState(() {
+        _subjects = allSubjects;
+        if (_subjects.isNotEmpty) {
+          _selectedSubjectCode = _subjects[0]['code'];
+          _selectedSubjectName = _subjects[0]['name'];
+        } else {
+          _selectedSubjectCode = null;
+          _selectedSubjectName = null;
+        }
+      });
+    }
+  }
+
+  Future<void> _loadStudentsAndAttendance() async {
+    if (_selectedDeptId == null || _selectedCourseId == null) return;
+    
+    setState(() => _isLoading = true);
+    try {
+      // 1. Fetch all students for this branch/course
+      final studentsData = await StudentService.getAllStudents();
+      // Filter by branch and program (dept and course)
+      final filteredStudents = studentsData.where((s) => 
+        s['selectedBranch'] == _selectedDeptId && s['selectedProgram'] == _selectedCourseId
+      ).toList();
+
+      // 2. Fetch attendance for this date
+      final dateStr = _selectedDate.toIso8601String().split('T')[0];
+      final attendanceData = (_selectedSubjectCode == null) ? [] : await AttendanceService.getAttendanceHistory(
+        dateStr, 
+        _selectedDeptId!, 
+        _selectedCourseId!, 
+        _selectedSubjectName!,
+        _selectedSubjectCode!
+      );
+
+      // 3. Merge
+      setState(() {
+        _students = filteredStudents.map((s) {
+          final att = attendanceData.firstWhere(
+            (a) => a['student'] == s['_id'],
+            orElse: () => null,
+          );
+          return {
+            "_id": s['_id'],
+            "name": "${s['firstName']} ${s['lastName']}",
+            "id": s['studentId'] ?? "N/A",
+            "avatar": s['avatar'] ?? "https://ui-avatars.com/api/?name=${s['firstName']}",
+            "isPresent": att != null ? (att['status'] == 'Present' || att['status'] == 'Late') : false,
+            "isLate": att != null ? att['isLate'] == true : false,
+          };
+        }).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Error loading students: $e");
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _submitAttendance() async {
+    setState(() => _isLoading = true);
+    try {
+      final dateStr = _selectedDate.toIso8601String().split('T')[0];
+      final List<Map<String, dynamic>> list = _students.map((s) => {
+        "student": s['_id'],
+        "studentId": s['id'],
+        "studentName": s['name'],
+        "status": s['isPresent'] ? (s['isLate'] ? 'Late' : 'Present') : 'Absent',
+        "isLate": s['isLate'],
+      }).toList();
+
+      await AttendanceService.submitAttendanceBulk(
+        date: dateStr,
+        attendanceList: list,
+        department: _selectedDeptId!,
+        course: _selectedCourseId!,
+        subject: _selectedSubjectName!,
+        subjectCode: _selectedSubjectCode!,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Attendance marked successfully!")),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +173,9 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
 
         return Scaffold(
           backgroundColor: const Color(0xFFF8F6F6),
-          body: isMobile
+          body: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : isMobile
               ? Column(
                   children: [
                     _buildMobileHeader(presentCount, absentCount),
@@ -147,26 +233,45 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
 
                                 _filterLabel("DEPARTMENT"),
                                 _sidebarDropdown(
-                                  _depts,
-                                  _selectedDept,
-                                  (v) => setState(() => _selectedDept = v),
+                                  _branches.map((b) => b['name'].toString()).toList(),
+                                  _branches.firstWhere((b) => b['_id'] == _selectedDeptId, orElse: () => {'name': ''})['name'],
+                                  (val) {
+                                    final id = _branches.firstWhere((b) => b['name'] == val)['_id'];
+                                    setState(() => _selectedDeptId = id);
+                                    _loadStudentsAndAttendance();
+                                  },
                                 ),
                                 const SizedBox(height: 20),
 
                                 _filterLabel("COURSE / BRANCH"),
                                 _sidebarDropdown(
-                                  _courses,
-                                  _selectedCourse,
-                                  (v) => setState(() => _selectedCourse = v),
+                                  _courses.map((c) => c['name'].toString()).toList(),
+                                  _courses.firstWhere((c) => c['_id'] == _selectedCourseId, orElse: () => {'name': ''})['name'],
+                                  (val) {
+                                    final id = _courses.firstWhere((c) => c['name'] == val)['_id'];
+                                    setState(() => _selectedCourseId = id);
+                                    setState(() {
+                                      _selectedCourseId = id;
+                                      _updateSubjects(); // Update subjects when course changes
+                                    });
+                                    _loadStudentsAndAttendance();
+                                  },
                                 ),
                                 const SizedBox(height: 20),
 
-                                _filterLabel("CLASS SECTION"),
-                                _sidebarDropdown(
-                                  _sections,
-                                  _selectedSection,
-                                  (v) => setState(() => _selectedSection = v),
-                                ),
+                                 _filterLabel("SUBJECT"),
+                                 _sidebarDropdown(
+                                   _subjects.map((s) => s['name'].toString()).toList(),
+                                   _subjects.firstWhere((s) => s['code'] == _selectedSubjectCode, orElse: () => {'name': 'Select Subject'})['name'],
+                                   (val) {
+                                     final sub = _subjects.firstWhere((s) => s['name'] == val);
+                                     setState(() {
+                                       _selectedSubjectCode = sub['code'];
+                                       _selectedSubjectName = sub['name'];
+                                     });
+                                     _loadStudentsAndAttendance();
+                                   },
+                                 ),
 
                                 const Spacer(),
 
@@ -264,17 +369,28 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
             children: [
               Expanded(
                 child: _sidebarDropdown(
-                  _depts,
-                  _selectedDept,
-                  (v) => setState(() => _selectedDept = v),
+                  _branches.map((b) => b['name'].toString()).toList(),
+                  _branches.firstWhere((b) => b['_id'] == _selectedDeptId, orElse: () => {'name': ''})['name'],
+                  (val) {
+                    final id = _branches.firstWhere((b) => b['name'] == val)['_id'];
+                    setState(() => _selectedDeptId = id);
+                    _loadStudentsAndAttendance();
+                  },
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _sidebarDropdown(
-                  _courses,
-                  _selectedCourse,
-                  (v) => setState(() => _selectedCourse = v),
+                  _subjects.map((s) => s['name'].toString()).toList(),
+                  _subjects.firstWhere((s) => s['code'] == _selectedSubjectCode, orElse: () => {'name': 'Select'})['name'],
+                  (val) {
+                    final sub = _subjects.firstWhere((s) => s['name'] == val);
+                    setState(() {
+                      _selectedSubjectCode = sub['code'];
+                      _selectedSubjectName = sub['name'];
+                    });
+                    _loadStudentsAndAttendance();
+                  },
                 ),
               ),
             ],
@@ -455,17 +571,10 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
               Row(
                 children: [
                   if (!isMobile) ...[
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryRed.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.fact_check_rounded,
-                        color: AppColors.primaryRed,
-                        size: 24,
-                      ),
+                    _headerActionBtn(
+                      "Submit Today's Attendance", 
+                      AppColors.primaryRed, 
+                      _submitAttendance
                     ),
                     const SizedBox(width: 16),
                   ],
@@ -473,17 +582,10 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "$_selectedCourse - $_selectedSection",
+                        "${_courses.firstWhere((c) => c['_id'] == _selectedCourseId, orElse: () => {'name': 'Select'})['name']} - ${_selectedSubjectName ?? 'Select Subject'}",
                         style: AppTheme.titleStyle.copyWith(fontSize: isMobile ? 18 : 22),
                       ),
-                      Text(
-                        "Thursday, 5th March 2026",
-                        style: TextStyle(
-                          color: AppColors.primaryRed,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      _buildCalendarCarousel(isMobile),
                     ],
                   ),
                 ],
@@ -786,6 +888,70 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCalendarCarousel(bool isMobile) {
+    return Container(
+      height: 45,
+      margin: const EdgeInsets.only(top: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: 15,
+        shrinkWrap: true,
+        itemBuilder: (context, index) {
+          final date = DateTime.now().subtract(Duration(days: 7 - index));
+          final isSelected = DateFormat('yyyy-MM-dd').format(date) == 
+                             DateFormat('yyyy-MM-dd').format(_selectedDate);
+          
+          return GestureDetector(
+            onTap: () {
+              setState(() => _selectedDate = date);
+              _loadStudentsAndAttendance();
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primaryRed : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isSelected ? AppColors.primaryRed : Colors.grey.shade200,
+                ),
+                boxShadow: isSelected ? [
+                  BoxShadow(
+                    color: AppColors.primaryRed.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ] : [],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    DateFormat('E').format(date).toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.white70 : Colors.grey,
+                    ),
+                  ),
+                  Text(
+                    DateFormat('dd').format(date),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      color: isSelected ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

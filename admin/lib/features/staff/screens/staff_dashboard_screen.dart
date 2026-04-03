@@ -131,6 +131,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
         gradientColors: const [Color(0xFF10B981), Color(0xFF059669)],
         chartColor: const Color(0xFF10B981),
         chartPoints: const [Offset(0, 0.5), Offset(1, 0.7), Offset(2, 0.6), Offset(3, 0.8), Offset(4, 0.9), Offset(5, 1.0)],
+        selectedTimeline: "All",
+        onTimelineChanged: (_) {},
       ),
       PremiumStatsCard(
         title: "Class Load",
@@ -141,6 +143,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
         gradientColors: const [Color(0xFF3B82F6), Color(0xFF2563EB)],
         chartColor: const Color(0xFF3B82F6),
         chartPoints: const [Offset(0, 0.2), Offset(1, 0.4), Offset(2, 0.3), Offset(3, 0.5), Offset(4, 0.4), Offset(5, 0.8)],
+        selectedTimeline: "All",
+        onTimelineChanged: (_) {},
       ),
       PremiumStatsCard(
         title: "Students Performance",
@@ -151,6 +155,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
         gradientColors: const [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
         chartColor: const Color(0xFF8B5CF6),
         chartPoints: const [Offset(0, 0.4), Offset(1, 0.5), Offset(2, 0.3), Offset(3, 0.6), Offset(4, 0.5), Offset(5, 0.9)],
+        selectedTimeline: "All",
+        onTimelineChanged: (_) {},
       ),
     ];
 

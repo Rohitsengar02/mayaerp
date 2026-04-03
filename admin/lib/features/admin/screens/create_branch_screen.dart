@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/app_constants.dart';
+import '../../../core/services/branch_service.dart';
 
 class CreateBranchScreen extends StatefulWidget {
   const CreateBranchScreen({super.key});
@@ -11,6 +12,58 @@ class CreateBranchScreen extends StatefulWidget {
 
 class _CreateBranchScreenState extends State<CreateBranchScreen> {
   final _formKey = GlobalKey<FormState>();
+  
+  final _codeCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
+  final _deanCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _extCtrl = TextEditingController();
+  final _locationCtrl = TextEditingController();
+  final _yearCtrl = TextEditingController();
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _codeCtrl.dispose();
+    _nameCtrl.dispose();
+    _deanCtrl.dispose();
+    _emailCtrl.dispose();
+    _extCtrl.dispose();
+    _locationCtrl.dispose();
+    _yearCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveBranch() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _isSaving = true);
+    try {
+      await BranchService.createBranch({
+        'code': _codeCtrl.text,
+        'name': _nameCtrl.text,
+        'deanName': _deanCtrl.text,
+        'contactEmail': _emailCtrl.text,
+        'contactExt': _extCtrl.text,
+        'location': _locationCtrl.text,
+        'establishedYear': _yearCtrl.text,
+      });
+      if (mounted) {
+        setState(() => _isSaving = false);
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Branch created successfully'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,8 +186,8 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
                         ).animate().fadeIn(delay: 200.ms),
                         const SizedBox(height: 32),
                         _row(isMobile, [
-                          _textField("Branch Code (e.g., SOE)", Icons.qr_code_rounded),
-                          _textField("Official Branch Name", Icons.business_rounded),
+                          _textField("Branch Code (e.g., SOE)", Icons.qr_code_rounded, _codeCtrl),
+                          _textField("Official Branch Name", Icons.business_rounded, _nameCtrl),
                         ]).animate(delay: 300.ms).fadeIn().slideY(begin: 0.1),
                         SizedBox(height: isMobile ? 32 : 60),
                         const Text(
@@ -147,19 +200,36 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
                           ),
                         ).animate().fadeIn(delay: 400.ms),
                         const SizedBox(height: 32),
-                        _textField("Primary Dean / HOD Name", Icons.person_pin_rounded)
+                        _textField("Primary Dean / HOD Name", Icons.person_pin_rounded, _deanCtrl)
                             .animate(delay: 500.ms)
                             .fadeIn(),
                         const SizedBox(height: 32),
                         _row(isMobile, [
-                          _textField("Contact Email", Icons.email_outlined),
-                          _textField("Contact Ext.", Icons.phone_rounded),
+                          _textField("Contact Email", Icons.email_outlined, _emailCtrl),
+                          _textField("Contact Ext.", Icons.phone_rounded, _extCtrl),
                         ]).animate(delay: 600.ms).fadeIn().slideY(begin: 0.1),
+                        SizedBox(height: isMobile ? 32 : 60),
+
+                        const Text(
+                          "Section 3: Establishment Details",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.grey,
+                            letterSpacing: 1,
+                          ),
+                        ).animate().fadeIn(delay: 700.ms),
+                        const SizedBox(height: 32),
+                        _row(isMobile, [
+                          _textField("Campus Location", Icons.location_on_rounded, _locationCtrl),
+                          _textField("Established Year", Icons.calendar_today_rounded, _yearCtrl, isNumber: true),
+                        ]).animate(delay: 800.ms).fadeIn().slideY(begin: 0.1),
+                        
                         SizedBox(height: isMobile ? 60 : 100),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: _isSaving ? null : _saveBranch,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.black,
                               foregroundColor: Colors.white,
@@ -168,13 +238,15 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            child: const Text(
-                              "PROVISION BRANCH",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 2,
-                              ),
-                            ),
+                            child: _isSaving
+                                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Text(
+                                    "PROVISION BRANCH",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
@@ -250,7 +322,7 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
     );
   }
 
-  Widget _textField(String hint, IconData icon) {
+  Widget _textField(String hint, IconData icon, TextEditingController controller, {bool isNumber = false}) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF8F6F6),
@@ -258,6 +330,9 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
         border: Border.all(color: Colors.black.withOpacity(0.01)),
       ),
       child: TextFormField(
+        controller: controller,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        validator: (v) => v!.isEmpty ? 'Required' : null,
         decoration: InputDecoration(
           hintText: hint,
           prefixIcon: Icon(icon, color: Colors.grey, size: 20),

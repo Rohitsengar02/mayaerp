@@ -4,6 +4,10 @@ import '../../../core/app_constants.dart';
 import '../../../core/app_theme.dart';
 import 'create_application_screen.dart';
 import 'application_detail_screen.dart';
+import '../../../core/services/application_service.dart';
+import '../../../core/services/course_service.dart';
+import '../../../core/services/branch_service.dart';
+import 'package:intl/intl.dart';
 
 class AdmissionManagementScreen extends StatefulWidget {
   const AdmissionManagementScreen({super.key});
@@ -16,166 +20,160 @@ class AdmissionManagementScreen extends StatefulWidget {
 class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
   String _activeFilter = 'All';
   final List<String> _filters = ['All', 'Pending', 'Approved', 'Rejected'];
+  List<dynamic> _applications = [];
+  List<dynamic> _courses = [];
+  List<dynamic> _branches = [];
+  bool _isLoading = true;
 
-  final List<Map<String, dynamic>> _applications = [
-    {
-      "name": "Rahul Sharma",
-      "course": "B.Tech CSE",
-      "score": "92.4%",
-      "date": "Aug 15",
-      "status": "Pending",
-      "city": "Mumbai",
-      "avatar": "https://i.pravatar.cc/150?img=14",
-    },
-    {
-      "name": "Priya Patel",
-      "course": "MBA Finance",
-      "score": "88.1%",
-      "date": "Aug 16",
-      "status": "Approved",
-      "city": "Ahmedabad",
-      "avatar": "https://i.pravatar.cc/150?img=47",
-    },
-    {
-      "name": "Arjun Singh",
-      "course": "B.Sc Data Science",
-      "score": "79.5%",
-      "date": "Aug 16",
-      "status": "Rejected",
-      "city": "Delhi",
-      "avatar": "https://i.pravatar.cc/150?img=33",
-    },
-    {
-      "name": "Divya Nair",
-      "course": "B.Tech Mech",
-      "score": "96.2%",
-      "date": "Aug 17",
-      "status": "Approved",
-      "city": "Kochi",
-      "avatar": "https://i.pravatar.cc/150?img=48",
-    },
-    {
-      "name": "Karan Mehta",
-      "course": "B.Tech ECE",
-      "score": "83.7%",
-      "date": "Aug 18",
-      "status": "Pending",
-      "city": "Pune",
-      "avatar": "https://i.pravatar.cc/150?img=12",
-    },
-    {
-      "name": "Sneha Rao",
-      "course": "MBA HR",
-      "score": "91.0%",
-      "date": "Aug 19",
-      "status": "Approved",
-      "city": "Bangalore",
-      "avatar": "https://i.pravatar.cc/150?img=45",
-    },
-    {
-      "name": "Amit Gupta",
-      "course": "B.Com Hons",
-      "score": "74.2%",
-      "date": "Aug 20",
-      "status": "Rejected",
-      "city": "Jaipur",
-      "avatar": "https://i.pravatar.cc/150?img=32",
-    },
-    {
-      "name": "Meena Krishnan",
-      "course": "B.Sc Physics",
-      "score": "89.5%",
-      "date": "Aug 21",
-      "status": "Pending",
-      "city": "Chennai",
-      "avatar": "https://i.pravatar.cc/150?img=49",
-    },
-    {
-      "name": "Rohan Verma",
-      "course": "MBA General",
-      "score": "85.0%",
-      "date": "Aug 22",
-      "status": "Approved",
-      "city": "Lucknow",
-      "avatar": "https://i.pravatar.cc/150?img=21",
-    },
-    {
-      "name": "Nisha Joshi",
-      "course": "B.Sc Hons",
-      "score": "77.3%",
-      "date": "Aug 23",
-      "status": "Pending",
-      "city": "Indore",
-      "avatar": "https://i.pravatar.cc/150?img=56",
-    },
-    {
-      "name": "Vikram Das",
-      "course": "B.Tech CSE",
-      "score": "94.1%",
-      "date": "Aug 24",
-      "status": "Approved",
-      "city": "Hyderabad",
-      "avatar": "https://i.pravatar.cc/150?img=53",
-    },
-    {
-      "name": "Anjali Menon",
-      "course": "MBA Finance",
-      "score": "90.8%",
-      "date": "Aug 25",
-      "status": "Pending",
-      "city": "Kolkata",
-      "avatar": "https://i.pravatar.cc/150?img=44",
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
-  final List<Map<String, dynamic>> _programs = [
-    {
-      "name": "Computer Science",
-      "fill": 0.85,
-      "total": 120,
-      "filled": 102,
-      "color": const Color(0xFF4F46E5),
-    },
-    {
-      "name": "Mechanical Eng.",
-      "fill": 0.65,
-      "total": 80,
-      "filled": 52,
-      "color": const Color(0xFFEA580C),
-    },
-    {
-      "name": "MBA General",
-      "fill": 0.95,
-      "total": 60,
-      "filled": 57,
-      "color": const Color(0xFF7C3AED),
-    },
-    {
-      "name": "B.Sc Honours",
-      "fill": 0.55,
-      "total": 100,
-      "filled": 55,
-      "color": const Color(0xFF0D9488),
-    },
-    {
-      "name": "B.Tech ECE",
-      "fill": 0.72,
-      "total": 90,
-      "filled": 65,
-      "color": const Color(0xFFDB2777),
-    },
-    {
-      "name": "MBA Finance",
-      "fill": 0.90,
-      "total": 50,
-      "filled": 45,
-      "color": const Color(0xFF059669),
-    },
-  ];
+  Future<void> _loadData() async {
+    try {
+      setState(() => _isLoading = true);
+      final apps = await ApplicationService.getAllApplications();
+      final courses = await CourseService.getAllCourses();
+      final branches = await BranchService.getAllBranches();
+      if (mounted) {
+        setState(() {
+          _applications = apps;
+          _courses = courses;
+          _branches = branches;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading data: $e')),
+        );
+      }
+    }
+  }
 
-  List<Map<String, dynamic>> get _filtered => _activeFilter == 'All'
+  Future<void> _handleDelete(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Delete'),
+        content: const Text('Are you sure you want to delete this application?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ApplicationService.deleteApplication(id);
+        _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Application deleted successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting application: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _handleUpdateStatus(String id, String status) async {
+    try {
+      await ApplicationService.updateApplication(id, {'status': status});
+      _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Application marked as $status')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating application: $e')),
+        );
+      }
+    }
+  }
+
+  Map<String, Map<String, dynamic>> get _programStats {
+    final Map<String, Color> colors = {
+      '0': const Color(0xFF4F46E5),
+      '1': const Color(0xFFEA580C),
+      '2': const Color(0xFF7C3AED),
+      '3': const Color(0xFF0D9488),
+      '4': const Color(0xFFDB2777),
+      '5': const Color(0xFF2563EB),
+      '6': const Color(0xFF059669),
+      '7': const Color(0xFF9333EA),
+      '8': const Color(0xFFDC2626),
+    };
+
+    final stats = <String, Map<String, dynamic>>{};
+    
+    // Initialize stats from database courses
+    int colorIndex = 0;
+    for (var c in _courses) {
+      final id = c['_id'] as String;
+      final name = c['name'] ?? 'Unknown Course';
+      final cap = c['intakeCapacity'] ?? 100;
+
+      stats[id] = {
+        'name': name,
+        'total': cap,
+        'filled': 0,
+        'color': colors[(colorIndex % colors.length).toString()] ?? Colors.grey,
+      };
+      colorIndex++;
+    }
+
+    // Count applications (only Approved/Accepted count as filled seats)
+    for (var app in _applications) {
+      final progVal = app['selectedProgram'] as String?;
+      final status = app['status'] as String?;
+      if (progVal == null) continue;
+
+      String? matchedId = progVal;
+      if (!stats.containsKey(progVal)) {
+        // Fallback if the legacy application stored the name instead of course ID
+        final match = _courses.where((c) => c['name'] == progVal).firstOrNull;
+        if (match != null) {
+          matchedId = match['_id'] as String?;
+        }
+      }
+
+      if (matchedId != null && stats.containsKey(matchedId)) {
+        if (status == 'Accepted' || status == 'Approved') {
+          stats[matchedId]!['filled'] = (stats[matchedId]!['filled'] as int) + 1;
+        }
+      }
+    }
+
+    return stats;
+  }
+
+  List<dynamic> get _filtered => _activeFilter == 'All'
       ? _applications
-      : _applications.where((a) => a['status'] == _activeFilter).toList();
+      : _applications.where((a) {
+        final status = a['status'] as String? ?? 'Pending';
+        if (_activeFilter == 'Approved') {
+          return status == 'Approved' || status == 'Accepted';
+        }
+        return status == _activeFilter;
+      }).toList();
 
   @override
   Widget build(BuildContext context) {
@@ -191,31 +189,33 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
             children: [
               _buildHeader(context, width),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(isMobile ? 16 : 32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildKPICards(width),
-                      SizedBox(height: isMobile ? 24 : 36),
-                      if (isNarrow) ...[
-                        _buildProgramAllocation(),
-                        const SizedBox(height: 24),
-                        _buildAdmissionFunnel(),
-                      ] else
-                        Row(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : SingleChildScrollView(
+                        padding: EdgeInsets.all(isMobile ? 16 : 32),
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(flex: 4, child: _buildProgramAllocation()),
-                            const SizedBox(width: 28),
-                            Expanded(flex: 3, child: _buildAdmissionFunnel()),
+                            _buildKPICards(width),
+                            SizedBox(height: isMobile ? 24 : 36),
+                            if (isNarrow) ...[
+                              _buildProgramAllocation(width),
+                              const SizedBox(height: 24),
+                              _buildAdmissionFunnel(),
+                            ] else
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(flex: 5, child: _buildProgramAllocation(width)),
+                                  const SizedBox(width: 28),
+                                  Expanded(flex: 2, child: _buildAdmissionFunnel()),
+                                ],
+                              ),
+                            SizedBox(height: isMobile ? 24 : 36),
+                            _buildApplicationsCardSection(context, width),
                           ],
                         ),
-                      SizedBox(height: isMobile ? 24 : 36),
-                      _buildApplicationsCardSection(context, width),
-                    ],
-                  ),
-                ),
+                      ),
               ),
             ],
           ),
@@ -355,34 +355,40 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
   // ─────────── KPI CARDS ───────────
   Widget _buildKPICards(double width) {
     bool isMobile = width < 850;
+    
+    final totalCount = _applications.length;
+    final pendingCount = _applications.where((a) => a['status'] == 'Pending').length;
+    final approvedCount = _applications.where((a) => a['status'] == 'Accepted' || a['status'] == 'Approved').length;
+    final rejectedCount = _applications.where((a) => a['status'] == 'Rejected').length;
+
     final cards = [
       {
         "label": "Total Applications",
-        "value": "2,847",
-        "sub": "+18% this month",
+        "value": totalCount.toString(),
+        "sub": "Across all programs",
         "icon": Icons.inbox_rounded,
         "colors": [const Color(0xFF880E4F), const Color(0xFFEC1349)],
       },
       {
         "label": "Pending Review",
-        "value": "154",
-        "sub": "Needs attention",
+        "value": pendingCount.toString(),
+        "sub": "Action required",
         "icon": Icons.pending_actions_rounded,
         "colors": [const Color(0xFFB45309), const Color(0xFFF59E0B)],
       },
       {
         "label": "Approved",
-        "value": "1,940",
+        "value": approvedCount.toString(),
         "sub": "Offer letters sent",
         "icon": Icons.check_circle_rounded,
         "colors": [const Color(0xFF065F46), const Color(0xFF10B981)],
       },
       {
-        "label": "Seats Filled",
-        "value": "1,200",
-        "sub": "of 1,500 total",
-        "icon": Icons.event_seat_rounded,
-        "colors": [const Color(0xFF312E81), const Color(0xFF6366F1)],
+        "label": "Rejected",
+        "value": rejectedCount.toString(),
+        "sub": "Ineligible candidates",
+        "icon": Icons.cancel_rounded,
+        "colors": [const Color(0xFF7F1D1D), const Color(0xFFEF4444)],
       },
     ];
 
@@ -517,7 +523,11 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
   }
 
   // ─────────── PROGRAM ALLOCATION ───────────
-  Widget _buildProgramAllocation() {
+  Widget _buildProgramAllocation(double width) {
+    final stats = _programStats.values.toList();
+    final isVeryWide = width > 1400;
+    final isMobile = width < 850;
+    
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: _panelDecor(),
@@ -535,20 +545,31 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
             ],
           ),
           const SizedBox(height: 28),
-          ...List.generate(_programs.length, (i) {
-            final p = _programs[i];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: _programBar(
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: stats.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isMobile ? 1 : (isVeryWide ? 3 : 2),
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20,
+              mainAxisExtent: 130,
+            ),
+            itemBuilder: (context, i) {
+              final p = stats[i];
+              final total = p['total'] as int;
+              final filled = p['filled'] as int;
+              final fill = total > 0 ? filled / total : 0.0;
+              return _programCard(
                 p['name'],
-                p['fill'],
-                p['total'],
-                p['filled'],
+                fill,
+                total,
+                filled,
                 p['color'],
                 i,
-              ),
-            );
-          }),
+              );
+            },
+          ),
         ],
       ),
     ).animate().fadeIn(delay: 200.ms).slideX(begin: -0.1);
@@ -576,7 +597,7 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
     ),
   );
 
-  Widget _programBar(
+  Widget _programCard(
     String name,
     double fill,
     int total,
@@ -584,101 +605,87 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
     Color color,
     int index,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
                   name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
-            RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: "$filled",
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                    ),
-                  ),
-                  TextSpan(
-                    text: " / $total",
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Stack(
-          children: [
-            Container(
-              height: 10,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+              Text(
+                "${(fill * 100).toInt()}%",
+                style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12),
               ),
-            ),
-            FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: fill,
-              child: Container(
-                height: 10,
+            ],
+          ),
+          const SizedBox(height: 12),
+          Stack(
+            children: [
+              Container(
+                height: 6,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [color, color.withValues(alpha: 0.65)],
-                  ),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "${(fill * 100).toInt()}% filled",
-          style: TextStyle(
-            fontSize: 11,
-            color: color,
-            fontWeight: FontWeight.bold,
+              FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: fill,
+                child: Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.6)]),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Filled Seats",
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.w500),
+              ),
+              Text(
+                "$filled / $total",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   // ─────────── FUNNEL ───────────
   Widget _buildAdmissionFunnel() {
+    final total = _applications.length;
+    final pending = _applications.where((a) => a['status'] == 'Pending').length;
+    final reviewed = total - pending;
+    final admitted = _applications.where((a) => a['status'] == 'Accepted' || a['status'] == 'Approved').length;
+
     final steps = [
-      {"label": "Applied", "value": 2847, "color": const Color(0xFF6366F1)},
-      {"label": "Shortlisted", "value": 1980, "color": const Color(0xFFEC1349)},
-      {"label": "Verified", "value": 1420, "color": const Color(0xFFF59E0B)},
-      {"label": "Admitted", "value": 1200, "color": const Color(0xFF10B981)},
+      {"label": "Applied", "value": total, "color": const Color(0xFF6366F1)},
+      {"label": "Reviewed", "value": reviewed, "color": const Color(0xFFEC1349)},
+      {"label": "Admitted", "value": admitted, "color": const Color(0xFF10B981)},
     ];
     return Container(
       padding: const EdgeInsets.all(28),
@@ -698,7 +705,7 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
           const SizedBox(height: 28),
           ...List.generate(steps.length, (i) {
             final s = steps[i];
-            final pct = (s['value'] as int) / 2847;
+            final pct = total > 0 ? (s['value'] as int) / total : 0.0;
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Column(
@@ -788,7 +795,7 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: "42.1%  ",
+                            text: "${total > 0 ? ((admitted / total) * 100).toStringAsFixed(1) : 0}%  ",
                             style: TextStyle(
                               color: AppColors.primaryRed,
                               fontWeight: FontWeight.w900,
@@ -871,7 +878,7 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: width < 600 ? 1 : (width < 900 ? 2 : (width < 1400 ? 3 : 4)),
-            childAspectRatio: width < 600 ? 0.85 : 0.72,
+            mainAxisExtent: 580,
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
           ),
@@ -970,19 +977,38 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
   }
 
   Widget _applicationCard(Map<String, dynamic> app, int index) {
-    final status = app['status'] as String;
-    final statusColor = status == 'Approved'
+    final status = app['status'] as String? ?? 'Pending';
+    final statusColor = status == 'Accepted' || status == 'Approved'
         ? const Color(0xFF10B981)
         : status == 'Rejected'
             ? const Color(0xFFEF4444)
             : const Color(0xFFF59E0B);
-    final statusBg = statusColor.withValues(alpha: 0.1);
     
-    final statusGrad = status == 'Approved'
+    final statusGrad = status == 'Accepted' || status == 'Approved'
         ? [const Color(0xFF065F46), const Color(0xFF10B981)]
         : status == 'Rejected'
             ? [const Color(0xFF7F1D1D), const Color(0xFFEF4444)]
             : [const Color(0xFF78350F), const Color(0xFFF59E0B)];
+
+    final courseId = app['selectedProgram'];
+    final courseName = _courses.where((c) => c['_id'] == courseId).firstOrNull?['name'] ?? courseId ?? 'Unknown Course';
+    
+    final branchId = app['selectedBranch'];
+    final branchName = _branches.where((b) => b['_id'] == branchId).firstOrNull?['name'] ?? branchId ?? 'Unknown Branch';
+
+    final name = "${app['firstName']} ${app['lastName']}";
+    final city = app['city'] ?? "N/A";
+    final category = app['category'] ?? "N/A";
+    final score = "${app['percentageCGPA']}%";
+    final date = app['createdAt'] != null 
+        ? DateFormat('MMM dd').format(DateTime.parse(app['createdAt']))
+        : "N/A";
+    final avatar = app['applicantPhoto'] ?? "https://ui-avatars.com/api/?name=$name&background=random";
+
+    final email = app['email'] ?? "N/A";
+    final phone = app['mobile'] ?? "N/A";
+    final gender = app['gender'] ?? "N/A";
+    final session = app['sessionYear'] ?? "N/A";
 
     return _HoverCard(
       child: Container(
@@ -1003,49 +1029,58 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
         children: [
           Column(
             children: [
-              // Top Banner Section
-              Container(
-                height: 80,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: statusGrad.map((c) => c.withValues(alpha: 0.9)).toList(),
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                // Top Banner Section
+                Container(
+                  height: 90,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: statusGrad.map((c) => c.withValues(alpha: 0.85)).toList(),
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                   ),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(100),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-                      ),
-                      child: Text(
-                        status.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 9,
-                          letterSpacing: 1.1,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                        ),
+                        child: Text(
+                          status.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 9,
+                            letterSpacing: 1.1,
+                          ),
                         ),
                       ),
-                    ),
-                    Text(
-                      "#ADM${1000 + index}",
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        ),
+                        child: Text(
+                          "#APP-${(index + 1).toString().padLeft(3, '0')}",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'monospace',
+                            fontSize: 10,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
               
               const SizedBox(height: 44), // Space for the avatar
               
@@ -1054,7 +1089,7 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
                 child: Column(
                   children: [
                     Text(
-                      app['name'],
+                      name,
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 18,
@@ -1067,11 +1102,21 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      app['course'],
+                      courseName,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: AppColors.primaryRed,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      branchName,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade500,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -1087,11 +1132,11 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: _miniInfo(Icons.location_on_rounded, app['city']),
+                            child: _miniInfo(Icons.location_on_rounded, city),
                           ),
                           Container(width: 1, height: 20, color: Colors.grey.shade200),
                           Expanded(
-                            child: _miniInfo(Icons.calendar_month_rounded, app['date']),
+                            child: _miniInfo(Icons.category_rounded, category),
                           ),
                         ],
                       ),
@@ -1106,7 +1151,7 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              "Merit Percentile",
+                              "Merit Score",
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -1114,7 +1159,7 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
                               ),
                             ),
                             Text(
-                              app['score'],
+                              score,
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w900,
@@ -1135,7 +1180,7 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
                             ),
                             FractionallySizedBox(
                               alignment: Alignment.centerLeft,
-                              widthFactor: double.parse(app['score'].replaceAll('%', '')) / 100,
+                              widthFactor: (double.tryParse(app['percentageCGPA']?.toString().replaceAll('%', '') ?? '0') ?? 0) / 100,
                               child: Container(
                                 height: 6,
                                 decoration: BoxDecoration(
@@ -1150,6 +1195,36 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
                         ),
                       ],
                     ),
+
+                    const SizedBox(height: 16),
+                    Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade100, width: 1.2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            _detailRow(Icons.email_outlined, email),
+                            const SizedBox(height: 10),
+                            _detailRow(Icons.phone_outlined, phone),
+                            const SizedBox(height: 10),
+                            _detailRow(Icons.school_outlined, "Qual: ${app['highestQualification'] ?? 'N/A'}"),
+                            const SizedBox(height: 10),
+                            _detailRow(Icons.business_outlined, "Inst: ${app['institutionName'] ?? 'N/A'}"),
+                            const SizedBox(height: 10),
+                            _detailRow(Icons.event_outlined, "Session: $session | $gender"),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -1176,12 +1251,28 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
                             ),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    _miniActionBtn(
+                      Icons.edit_outlined,
+                      Colors.blue,
+                      () async {
+                        final result = await Navigator.push(
+                          context,
+                          _slideRoute(CreateApplicationScreen(application: app)),
+                        );
+                        if (result == true) {
+                          _loadData();
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 8),
                     if (status == 'Pending') ...[
-                      const SizedBox(width: 10),
-                      _miniActionBtn(Icons.check_rounded, Colors.green, () {}),
+                      _miniActionBtn(Icons.check_rounded, Colors.green, () => _handleUpdateStatus(app['_id'], 'Accepted')),
                       const SizedBox(width: 8),
-                      _miniActionBtn(Icons.close_rounded, Colors.red, () {}),
+                      _miniActionBtn(Icons.close_rounded, Colors.red, () => _handleUpdateStatus(app['_id'], 'Rejected')),
+                      const SizedBox(width: 8),
                     ],
+                    _miniActionBtn(Icons.delete_outline_rounded, Colors.red.shade700, () => _handleDelete(app['_id'])),
                   ],
                 ),
               ),
@@ -1209,7 +1300,7 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
                 child: CircleAvatar(
                   radius: 38,
                   backgroundColor: Colors.grey.shade100,
-                  backgroundImage: NetworkImage(app['avatar']),
+                  backgroundImage: NetworkImage(avatar),
                 ),
               ),
             ),
@@ -1311,6 +1402,27 @@ class _AdmissionManagementScreenState extends State<AdmissionManagementScreen> {
       child: child,
     ),
   );
+
+  Widget _detailRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: Colors.grey.shade500),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 // ── Hover lift ──

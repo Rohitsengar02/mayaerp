@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../../core/services/book_service.dart';
 
 class AddBooksToShelfDialog extends StatefulWidget {
   final String shelfName;
@@ -12,23 +13,65 @@ class AddBooksToShelfDialog extends StatefulWidget {
 class _AddBooksToShelfDialogState extends State<AddBooksToShelfDialog> {
   String _searchQuery = '';
   final List<String> _selectedBooks = [];
-  
-  final List<Map<String, dynamic>> _dummyBooks = [
-    {"id": "B001", "title": "Clean Code", "author": "Robert C. Martin", "isbn": "978-0132350884"},
-    {"id": "B002", "title": "Design Patterns", "author": "Erich Gamma", "isbn": "978-0201633610"},
-    {"id": "B003", "title": "Introduction to Algorithms", "author": "Thomas H. Cormen", "isbn": "978-0262033848"},
-    {"id": "B004", "title": "The Pragmatic Programmer", "author": "Andrew Hunt", "isbn": "978-0135957059"},
-    {"id": "B005", "title": "Head First Design Patterns", "author": "Eric Freeman", "isbn": "978-0596007126"},
-  ];
+  List<dynamic> _books = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBooks();
+  }
+
+  Future<void> _loadBooks() async {
+    try {
+      setState(() => _isLoading = true);
+      final data = await BookService.getAllBooks();
+      setState(() {
+        _books = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Error loading books in dialog: $e");
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _allocateBooks() async {
+    if (_selectedBooks.isEmpty) return;
+    
+    setState(() => _isLoading = true);
+    try {
+      // For each selected book ID, update its shelf
+      for (String bookId in _selectedBooks) {
+        final book = _books.firstWhere((element) => element['_id'] == bookId);
+        final bookData = Map<String, dynamic>.from(book);
+        bookData['shelf'] = widget.shelfName;
+        await BookService.updateBook(bookId, bookData);
+      }
+      
+      if (mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Books allocated successfully")));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error allocating books: $e")));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     bool isMobile = MediaQuery.of(context).size.width < 600;
     
-    final filteredCards = _dummyBooks.where((b) {
+    final filteredCards = _books.where((b) {
       if (_searchQuery.isEmpty) return true;
       final q = _searchQuery.toLowerCase();
-      return b['title'].toLowerCase().contains(q) || b['author'].toLowerCase().contains(q) || b['isbn'].toLowerCase().contains(q);
+      return b['title'].toString().toLowerCase().contains(q) || 
+             b['author'].toString().toLowerCase().contains(q) || 
+             b['isbn'].toString().toLowerCase().contains(q);
     }).toList();
 
     return Dialog(
@@ -54,21 +97,23 @@ class _AddBooksToShelfDialogState extends State<AddBooksToShelfDialog> {
             _buildHeader(),
             _buildSearchBar(),
             Expanded(
-              child: ListView.separated(
+              child: _isLoading 
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 itemCount: filteredCards.length,
                 separatorBuilder: (context, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final book = filteredCards[index];
-                  final isSelected = _selectedBooks.contains(book['id']);
+                  final isSelected = _selectedBooks.contains(book['_id']);
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
                     onTap: () {
                       setState(() {
                         if (isSelected) {
-                          _selectedBooks.remove(book['id']);
+                          _selectedBooks.remove(book['_id']);
                         } else {
-                          _selectedBooks.add(book['id']);
+                          _selectedBooks.add(book['_id']);
                         }
                       });
                     },
@@ -171,9 +216,9 @@ class _AddBooksToShelfDialogState extends State<AddBooksToShelfDialog> {
               ),
               const SizedBox(width: 12),
               ElevatedButton.icon(
-                onPressed: _selectedBooks.isNotEmpty ? () => Navigator.pop(context) : null,
+                onPressed: (_selectedBooks.isNotEmpty && !_isLoading) ? _allocateBooks : null,
                 icon: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
-                label: const Text("Allocate Books", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                label: Text(_isLoading ? "Processing..." : "Allocate Books", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4F46E5),
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),

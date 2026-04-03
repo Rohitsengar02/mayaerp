@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../onboarding/screens/showcase_screen.dart';
+import '../../../core/services/auth_service.dart';
 
 class StaffSidebar extends StatelessWidget {
   final int selectedIndex;
@@ -180,10 +182,21 @@ class StaffSidebar extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.logout_rounded,
-                  size: 20,
-                  color: Colors.grey.shade400,
+                IconButton(
+                  onPressed: () async {
+                    await AuthService.logout();
+                    if (context.mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const ShowcaseScreen()),
+                        (route) => false,
+                      );
+                    }
+                  },
+                  icon: Icon(
+                    Icons.logout_rounded,
+                    size: 20,
+                    color: Colors.grey.shade400,
+                  ),
                 ),
               ],
             ),

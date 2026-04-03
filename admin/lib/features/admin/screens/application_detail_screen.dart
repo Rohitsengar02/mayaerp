@@ -14,13 +14,13 @@ class ApplicationDetailScreen extends StatelessWidget {
         final width = constraints.maxWidth;
         final isMobile = width < 900;
 
-        final status = application['status'] as String;
-        final statusColor = status == 'Approved'
+        final status = application['status']?.toString() ?? 'Pending';
+        final statusColor = status == 'Approved' || status == 'Accepted'
             ? Colors.green
             : status == 'Rejected'
             ? Colors.red
             : Colors.orange;
-        final bannerGrad = status == 'Approved'
+        final bannerGrad = status == 'Approved' || status == 'Accepted'
             ? [const Color(0xFF065F46), const Color(0xFF10B981)]
             : status == 'Rejected'
             ? [const Color(0xFF7F1D1D), const Color(0xFFEF4444)]
@@ -68,9 +68,9 @@ class ApplicationDetailScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Row(
                         children: [
-                          _statPill("Merit Score", application['score']),
+                          _statPill("Merit Score", "${application['percentageCGPA'] ?? '0'}%"),
                           const SizedBox(width: 12),
-                          _statPill("Applied On", application['date']),
+                          _statPill("Applied On", application['createdAt']?.toString().split('T').first ?? 'N/A'),
                         ],
                       ),
                     ),
@@ -92,29 +92,29 @@ class ApplicationDetailScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _section("Personal Information", [
-                _infoRow(Icons.person_rounded, "Full Name", application['name']),
-                _infoRow(Icons.location_city_rounded, "City", application['city']),
-                _infoRow(Icons.phone_android_rounded, "Mobile", "+91 98765 43210"),
-                _infoRow(Icons.alternate_email_rounded, "Email", "${(application['name'] as String).toLowerCase().replaceAll(' ', '.')}@example.com"),
-                _infoRow(Icons.location_on_rounded, "Address", "123, Main Road, ${application['city']} - 400001"),
+                _infoRow(Icons.person_rounded, "Full Name", "${application['firstName'] ?? ''} ${application['lastName'] ?? ''}"),
+                _infoRow(Icons.location_city_rounded, "City", application['city'] ?? 'N/A'),
+                _infoRow(Icons.phone_android_rounded, "Mobile", "+91 ${application['mobile'] ?? 'N/A'}"),
+                _infoRow(Icons.alternate_email_rounded, "Email", application['email'] ?? 'N/A'),
+                _infoRow(Icons.location_on_rounded, "Address", application['address'] ?? 'N/A'),
               ], 0),
               const SizedBox(height: 28),
               _section("Academic Details", [
-                _infoRow(Icons.school_rounded, "Qualification", "XII / HSC"),
-                _infoRow(Icons.account_balance_rounded, "Institution", "Govt Senior Secondary School"),
-                _infoRow(Icons.percent_rounded, "Percentage", application['score']),
-                _infoRow(Icons.calendar_today_rounded, "Year of Passing", "2023"),
-                _infoRow(Icons.assignment_rounded, "Entrance Score", "JEE Mains — 87.4 Percentile"),
+                _infoRow(Icons.school_rounded, "Qualification", application['highestQualification'] ?? 'N/A'),
+                _infoRow(Icons.account_balance_rounded, "Institution", application['institutionName'] ?? 'N/A'),
+                _infoRow(Icons.percent_rounded, "Percentage / CGPA", application['percentageCGPA']?.toString() ?? 'N/A'),
+                _infoRow(Icons.calendar_today_rounded, "Year of Passing", application['yearOfPassing']?.toString() ?? 'N/A'),
+                _infoRow(Icons.assignment_rounded, "Entrance Score", application['entranceScore']?.toString() ?? 'N/A'),
               ], 1),
               const SizedBox(height: 28),
               _section("Program Selection", [
-                _infoRow(Icons.library_books_rounded, "Applied Course", application['course']),
-                _infoRow(Icons.event_rounded, "Academic Session", "2024-25"),
-                _infoRow(Icons.category_rounded, "Category", "General"),
-                _infoRow(Icons.calendar_month_rounded, "Date", "Aug ${application['date'].split(' ').last}, 2023"),
+                _infoRow(Icons.library_books_rounded, "Applied Course", application['selectedProgram'] ?? 'N/A'),
+                _infoRow(Icons.event_rounded, "Academic Session", application['sessionYear'] ?? 'N/A'),
+                _infoRow(Icons.category_rounded, "Category", application['category'] ?? 'N/A'),
+                _infoRow(Icons.calendar_month_rounded, "Applied On", application['createdAt']?.toString().split('T').first ?? 'N/A'),
               ], 2),
               const SizedBox(height: 28),
-              _section("Uploaded Documents", [], 3, customChild: _docGrid(width)),
+              _section("Uploaded Documents", [], 3, customChild: _docGrid(context, width)),
               const SizedBox(height: 28),
               _section("Application Timeline", [], 4, customChild: _timeline(status)),
             ],
@@ -176,12 +176,14 @@ class ApplicationDetailScreen extends StatelessWidget {
           ),
           child: CircleAvatar(
             radius: 52,
-            backgroundImage: NetworkImage(application['avatar']),
+            backgroundImage: application['applicantPhoto'] != null 
+              ? NetworkImage(application['applicantPhoto'])
+              : NetworkImage('https://ui-avatars.com/api/?name=${application['firstName'] ?? 'User'}&background=random'),
           ),
         ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
         const SizedBox(height: 20),
         Text(
-          application['name'],
+          "${application['firstName'] ?? ''} ${application['lastName'] ?? ''}",
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22),
           textAlign: TextAlign.center,
         ),
@@ -194,7 +196,7 @@ class ApplicationDetailScreen extends StatelessWidget {
             border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
           ),
           child: Text(
-            application['course'],
+            application['selectedProgram'] ?? 'N/A',
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
           ),
         ),
@@ -402,37 +404,34 @@ class ApplicationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _docGrid(double width) {
+  Widget _docGrid(BuildContext context, double width) {
+    final docsData = application['documents'] as Map<String, dynamic>? ?? {};
+    
     final docs = [
       {
         "name": "10th Marksheet",
+        "key": "marksheet10",
         "color": const Color(0xFF4F46E5),
-        "status": "Uploaded",
       },
       {
         "name": "12th Marksheet",
+        "key": "marksheet12",
         "color": const Color(0xFF0891B2),
-        "status": "Uploaded",
       },
       {
         "name": "Transfer Cert",
+        "key": "transferCertificate",
         "color": const Color(0xFF7C3AED),
-        "status": "Uploaded",
       },
       {
         "name": "Aadhar Card",
-        "color": AppColors.primaryRed,
-        "status": "Uploaded",
-      },
-      {
-        "name": "Passport Photo",
-        "color": const Color(0xFF059669),
-        "status": "Pending",
+        "key": "aadharCard",
+        "color": const Color(0xFFDC2626),
       },
       {
         "name": "Entrance Score",
+        "key": "entranceScoreCard",
         "color": const Color(0xFFD97706),
-        "status": "Pending",
       },
     ];
     return GridView.count(
@@ -444,49 +443,56 @@ class ApplicationDetailScreen extends StatelessWidget {
       mainAxisSpacing: 14,
       children: docs.map((d) {
         final color = d['color'] as Color;
-        final isUploaded = d['status'] == 'Uploaded';
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                isUploaded
-                    ? Icons.check_circle_rounded
-                    : Icons.upload_file_rounded,
-                color: color,
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      d['name'] as String,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      d['status'] as String,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: color,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+        final url = docsData[d['key']];
+        final isUploaded = url != null && url.toString().isNotEmpty;
+        
+        return InkWell(
+          onTap: isUploaded ? () => _viewDocument(context, (d['name'] ?? '').toString(), url.toString()) : null,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isUploaded
+                      ? Icons.check_circle_rounded
+                      : Icons.upload_file_rounded,
+                  color: color,
+                  size: 20,
                 ),
-              ),
-            ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        (d['name'] ?? '').toString(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        isUploaded ? "Uploaded" : "Missing",
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isUploaded)
+                  const Icon(Icons.visibility_outlined, size: 16, color: Colors.grey),
+              ],
+            ),
           ),
         );
       }).toList(),
@@ -525,7 +531,7 @@ class ApplicationDetailScreen extends StatelessWidget {
     return Column(
       children: List.generate(events.length, (i) {
         final e = events[i];
-        final isDone = e['done'] as bool;
+        final isDone = e['done'] == true;
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -571,7 +577,7 @@ class ApplicationDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    e['title'] as String,
+                    (e['title'] ?? '').toString(),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -580,7 +586,7 @@ class ApplicationDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    e['date'] as String,
+                    (e['date'] ?? '').toString(),
                     style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                   ),
                 ],
@@ -589,6 +595,84 @@ class ApplicationDetailScreen extends StatelessWidget {
           ],
         );
       }),
+    );
+  }
+
+  void _viewDocument(BuildContext context, String name, String url) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(20),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: InteractiveViewer(
+                      child: Image.network(
+                        url,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            height: 200,
+                            alignment: Alignment.center,
+                            child: const CircularProgressIndicator(),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 200,
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.error_outline_rounded, color: Colors.red.shade300, size: 40),
+                              const SizedBox(height: 12),
+                              const Text("Failed to load document", style: TextStyle(color: Colors.grey)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

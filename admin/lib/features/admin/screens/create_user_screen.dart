@@ -2,19 +2,126 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/app_constants.dart';
 import '../../../core/app_theme.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../core/services/user_service.dart';
+import '../../../core/services/application_service.dart';
 
 class CreateUserScreen extends StatefulWidget {
-  const CreateUserScreen({super.key});
+  final dynamic user;
+  const CreateUserScreen({super.key, this.user});
 
   @override
   State<CreateUserScreen> createState() => _CreateUserScreenState();
 }
 
 class _CreateUserScreenState extends State<CreateUserScreen> {
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _dobController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _employeeIdController = TextEditingController();
+
   String _selectedRole = 'Admin';
   String _selectedDept = 'Academic';
   bool _isActive = true;
   bool _isSaving = false;
+  String? _profilePhotoUrl;
+  XFile? _selectedImage;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.user != null) {
+      _firstNameController.text = widget.user['firstName'] ?? '';
+      _lastNameController.text = widget.user['lastName'] ?? '';
+      _dobController.text = widget.user['dob'] ?? '';
+      _phoneController.text = widget.user['phone'] ?? '';
+      _addressController.text = widget.user['address'] ?? '';
+      _emailController.text = widget.user['email'] ?? '';
+      _employeeIdController.text = widget.user['employeeId'] ?? '';
+      _selectedRole = widget.user['role'] ?? 'Admin';
+      _selectedDept = widget.user['department'] ?? 'Academic';
+      _isActive = widget.user['status'] == 'Active';
+      _profilePhotoUrl = widget.user['profilePhoto'];
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    // Using imageQuality and maxWidth to compress image as requested
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 70,
+    );
+    if (image != null) {
+      setState(() => _selectedImage = image);
+    }
+  }
+
+  Future<void> _saveUser() async {
+    if (_passwordController.text != _confirmPasswordController.text && widget.user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      String? photoUrl = _profilePhotoUrl;
+      if (_selectedImage != null) {
+        photoUrl = await ApplicationService.uploadToCloudinary(_selectedImage);
+      }
+
+      final userData = {
+        'firstName': _firstNameController.text,
+        'lastName': _lastNameController.text,
+        'dob': _dobController.text,
+        'phone': _phoneController.text,
+        'address': _addressController.text,
+        'email': _emailController.text,
+        'role': _selectedRole,
+        'department': _selectedDept,
+        'employeeId': _employeeIdController.text,
+        'status': _isActive ? 'Active' : 'Inactive',
+        'profilePhoto': photoUrl,
+      };
+
+      if (_passwordController.text.isNotEmpty) {
+        userData['password'] = _passwordController.text;
+      }
+
+      if (widget.user != null) {
+        await UserService.updateUser(widget.user['_id'], userData);
+      } else {
+        if (_passwordController.text.isEmpty) {
+          throw Exception('Password is required for new users');
+        }
+        await UserService.createUser(userData);
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving user: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
 
   final _roles = [
     'Admin',
@@ -117,50 +224,67 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                               Center(
                                 child: Column(
                                   children: [
-                                    Stack(
-                                      children: [
-                                        Container(
-                                          width: 120,
-                                          height: 120,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Colors.white.withValues(
-                                              alpha: 0.15,
-                                            ),
-                                            border: Border.all(
-                                              color: Colors.white.withValues(
-                                                alpha: 0.4,
+                                      InkWell(
+                                        onTap: _pickImage,
+                                        borderRadius: BorderRadius.circular(60),
+                                        child: Stack(
+                                          children: [
+                                            Container(
+                                              width: 120,
+                                              height: 120,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.15,
+                                                ),
+                                                image: _selectedImage != null
+                                                    ? DecorationImage(
+                                                        image: NetworkImage(_selectedImage!.path), // Use NetworkImage for simplicity in web or just for demo
+                                                        fit: BoxFit.cover,
+                                                      )
+                                                    : _profilePhotoUrl != null
+                                                        ? DecorationImage(
+                                                            image: NetworkImage(_profilePhotoUrl!),
+                                                            fit: BoxFit.cover,
+                                                          )
+                                                        : null,
+                                                border: Border.all(
+                                                  color: Colors.white.withValues(
+                                                    alpha: 0.4,
+                                                  ),
+                                                  width: 3,
+                                                ),
                                               ),
-                                              width: 3,
+                                              child: _selectedImage == null && _profilePhotoUrl == null
+                                                  ? const Icon(
+                                                      Icons.person,
+                                                      color: Colors.white,
+                                                      size: 60,
+                                                    )
+                                                  : null,
                                             ),
-                                          ),
-                                          child: const Icon(
-                                            Icons.person,
-                                            color: Colors.white,
-                                            size: 60,
-                                          ),
-                                        ),
-                                        Positioned(
-                                          bottom: 0,
-                                          right: 0,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: const BoxDecoration(
-                                              color: Colors.white,
-                                              shape: BoxShape.circle,
+                                            Positioned(
+                                              bottom: 0,
+                                              right: 0,
+                                              child: Container(
+                                                padding: const EdgeInsets.all(8),
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.white,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  Icons.camera_alt,
+                                                  color: AppColors.primaryRed,
+                                                  size: 18,
+                                                ),
+                                              ),
                                             ),
-                                            child: Icon(
-                                              Icons.camera_alt,
-                                              color: AppColors.primaryRed,
-                                              size: 18,
-                                            ),
+                                          ],
+                                        ),
+                                      ).animate().scale(
+                                            curve: Curves.easeOutBack,
+                                            duration: 600.ms,
                                           ),
-                                        ),
-                                      ],
-                                    ).animate().scale(
-                                          curve: Curves.easeOutBack,
-                                          duration: 600.ms,
-                                        ),
                                     const SizedBox(height: 16),
                                     const Text(
                                       "Upload Profile Photo",
@@ -302,11 +426,13 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                         _field(
                           "First Name",
                           Icons.person_outline_rounded,
+                          controller: _firstNameController,
                           delay: 0,
                         ),
                         _field(
                           "Last Name",
                           Icons.person_outline_rounded,
+                          controller: _lastNameController,
                           delay: 50,
                         ),
                       ]),
@@ -315,12 +441,14 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                         _field(
                           "Date of Birth",
                           Icons.cake_rounded,
+                          controller: _dobController,
                           delay: 100,
                           hint: "DD / MM / YYYY",
                         ),
                         _field(
                           "Phone Number",
                           Icons.phone_android_rounded,
+                          controller: _phoneController,
                           delay: 150,
                           hint: "+91 9999 999 999",
                         ),
@@ -329,6 +457,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                       _field(
                         "Full Address",
                         Icons.location_on_rounded,
+                        controller: _addressController,
                         delay: 200,
                         hint: "Street, City, State, PIN",
                       ),
@@ -341,6 +470,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                       _field(
                         "Email Address",
                         Icons.alternate_email_rounded,
+                        controller: _emailController,
                         delay: 250,
                         hint: "user@mayainstitute.edu",
                       ),
@@ -349,12 +479,14 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                         _field(
                           "Password",
                           Icons.lock_outline_rounded,
+                          controller: _passwordController,
                           delay: 300,
                           isObscure: true,
                         ),
                         _field(
                           "Confirm Password",
                           Icons.lock_outline_rounded,
+                          controller: _confirmPasswordController,
                           delay: 350,
                           isObscure: true,
                         ),
@@ -387,6 +519,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                       _field(
                         "Employee ID / Staff Code",
                         Icons.badge_rounded,
+                        controller: _employeeIdController,
                         delay: 500,
                         hint: "EMP-001",
                       ),
@@ -437,13 +570,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                             ],
                           ),
                           child: ElevatedButton.icon(
-                            onPressed: () async {
-                              setState(() => _isSaving = true);
-                              await Future.delayed(const Duration(seconds: 2));
-                              if (!mounted) return;
-                              setState(() => _isSaving = false);
-                              Navigator.pop(context);
-                            },
+                            onPressed: _isSaving ? null : _saveUser,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
@@ -460,14 +587,14 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Icon(
-                                    Icons.person_add_rounded,
+                                : Icon(
+                                    widget.user != null ? Icons.save_rounded : Icons.person_add_rounded,
                                     color: Colors.white,
                                   ),
                             label: Text(
                               _isSaving
-                                  ? "Creating Account..."
-                                  : "Create Account",
+                                  ? (widget.user != null ? "Updating..." : "Creating Account...")
+                                  : (widget.user != null ? "Update Details" : "Create Account"),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -564,6 +691,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
   Widget _field(
     String label,
     IconData icon, {
+    TextEditingController? controller,
     int delay = 0,
     String? hint,
     bool isObscure = false,
@@ -593,6 +721,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
             ],
           ),
           child: TextField(
+            controller: controller,
             obscureText: isObscure,
             decoration: InputDecoration(
               hintText: hint ?? "Enter $label",

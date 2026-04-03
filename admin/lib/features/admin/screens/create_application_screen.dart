@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/app_constants.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/services/application_service.dart';
+import '../../../core/services/branch_service.dart';
+import '../../../core/services/course_service.dart';
 
 class CreateApplicationScreen extends StatefulWidget {
-  const CreateApplicationScreen({super.key});
+  final Map<String, dynamic>? application;
+  const CreateApplicationScreen({super.key, this.application});
 
   @override
   State<CreateApplicationScreen> createState() =>
@@ -14,24 +19,20 @@ class CreateApplicationScreen extends StatefulWidget {
 class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
   int _step = 0;
   bool _isSaving = false;
-  String _selectedProgram = 'B.Tech CSE';
+  String? _selectedBranch;
+  String? _selectedProgram; // Now refers to a course name or ID
   String _selectedSession = '2024-25';
   String _selectedCategory = 'General';
   String _selectedGender = 'Male';
   String _selectedQualification = 'XII / HSC';
 
-  final _programs = [
-    'B.Tech CSE',
-    'B.Tech ECE',
-    'B.Tech Mech',
-    'MBA Finance',
-    'MBA HR',
-    'MBA General',
-    'B.Sc Physics',
-    'B.Sc Data Science',
-    'B.Com Honours',
-  ];
-  final _sessions = ['2024-25', '2023-24', '2022-23'];
+  List<dynamic> _branches = [];
+  List<dynamic> _courses = [];
+  bool _isLoadingDropdowns = false;
+  final _sessions = List.generate(6, (i) {
+    int year = DateTime.now().year - i;
+    return "$year-${(year + 1).toString().substring(2)}";
+  });
   final _categories = ['General', 'OBC', 'SC', 'ST', 'EWS', 'PWD'];
   final _genders = ['Male', 'Female', 'Other'];
   final _qualifications = [
@@ -49,6 +50,203 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
     'Program Selection',
     'Documents',
   ];
+
+  // --- FORM CONTROLLERS ---
+  final _firstNameCtrl = TextEditingController();
+  final _lastNameCtrl = TextEditingController();
+  final _dobCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _mobileCtrl = TextEditingController();
+  final _altMobileCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
+  final _stateCtrl = TextEditingController();
+  final _pinCodeCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  final _confirmPasswordCtrl = TextEditingController();
+
+  final _institutionCtrl = TextEditingController();
+  final _boardCtrl = TextEditingController();
+  final _scoreCtrl = TextEditingController();
+  final _yearCtrl = TextEditingController();
+  final _sub1Ctrl = TextEditingController();
+  final _sub2Ctrl = TextEditingController();
+  final _sub3Ctrl = TextEditingController();
+  final _entranceCtrl = TextEditingController();
+  final _sopCtrl = TextEditingController();
+
+  // --- IMAGE & DOCUMENT FILES ---
+  XFile? _profileImage;
+  final Map<String, XFile?> _documentFiles = {};
+
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickDocument(String docKey) async {
+    final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
+    if (file != null) {
+      setState(() {
+        _documentFiles[docKey] = file;
+      });
+    }
+  }
+
+  Future<void> _pickProfileImage() async {
+    final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
+    if (file != null) {
+      setState(() {
+        _profileImage = file;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.application != null) {
+      final app = widget.application!;
+      _firstNameCtrl.text = app['firstName'] ?? '';
+      _lastNameCtrl.text = app['lastName'] ?? '';
+      _dobCtrl.text = app['dob'] ?? '';
+      _emailCtrl.text = app['email'] ?? '';
+      _mobileCtrl.text = app['mobile'] ?? '';
+      _altMobileCtrl.text = app['alternateMobile'] ?? '';
+      _addressCtrl.text = app['address'] ?? '';
+      _cityCtrl.text = app['city'] ?? '';
+      _stateCtrl.text = app['state'] ?? '';
+      _pinCodeCtrl.text = app['pinCode'] ?? '';
+
+      _institutionCtrl.text = app['institutionName'] ?? '';
+      _boardCtrl.text = app['boardUniversity'] ?? '';
+      _scoreCtrl.text = app['percentageCGPA']?.toString() ?? '';
+      _yearCtrl.text = app['yearOfPassing']?.toString() ?? '';
+      
+      final subjectMarks = app['subjectMarks'] as Map<String, dynamic>? ?? {};
+      _sub1Ctrl.text = subjectMarks['subject1'] ?? '';
+      _sub2Ctrl.text = subjectMarks['subject2'] ?? '';
+      _sub3Ctrl.text = subjectMarks['subject3'] ?? '';
+      
+      _entranceCtrl.text = app['entranceScore'] ?? '';
+      _sopCtrl.text = app['statementOfPurpose'] ?? '';
+
+      _selectedBranch = app['selectedBranch'];
+      _selectedProgram = app['selectedProgram'];
+      _selectedSession = app['sessionYear'] ?? _sessions.first;
+      _selectedCategory = app['category'] ?? _categories.first;
+      _selectedGender = app['gender'] ?? _genders.first;
+      _selectedQualification = app['highestQualification'] ?? _qualifications.first;
+
+      // Keep existing document and photo URLs
+      _existingProfileUrl = app['applicantPhoto'];
+      _existingDocumentUrls = Map<String, String>.from(app['documents'] ?? {});
+    }
+    
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() => _isLoadingDropdowns = true);
+    try {
+      final branchesResult = await BranchService.getAllBranches();
+      if (mounted) {
+        setState(() {
+          _branches = branchesResult;
+          if (_selectedBranch == null && _branches.isNotEmpty) {
+            // Do not select auto if you prefer empty, but let's select first
+            // _selectedBranch = _branches.first['_id'];
+          }
+        });
+        if (_selectedBranch != null) {
+          await _loadCoursesForBranch(_selectedBranch!);
+        } else if (_branches.isNotEmpty) {
+          // await _loadCoursesForBranch(_branches.first['_id']);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading branches: $e");
+    } finally {
+      if (mounted) setState(() => _isLoadingDropdowns = false);
+    }
+  }
+
+  Future<void> _loadCoursesForBranch(String branchId) async {
+    setState(() => _isLoadingDropdowns = true);
+    try {
+      final coursesResult = await CourseService.getAllCourses(branchId: branchId);
+      if (mounted) {
+        setState(() {
+          _courses = coursesResult;
+          if (!_courses.any((c) => c['_id'] == _selectedProgram)) {
+            _selectedProgram = _courses.isNotEmpty ? _courses.first['_id'] : null;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading courses: $e");
+    } finally {
+      if (mounted) setState(() => _isLoadingDropdowns = false);
+    }
+  }
+
+  // --- EXISTING DATA (For Editing) ---
+  String? _existingProfileUrl;
+  Map<String, String> _existingDocumentUrls = {};
+
+  @override
+  void dispose() {
+    _firstNameCtrl.dispose();
+    _lastNameCtrl.dispose();
+    _dobCtrl.dispose();
+    _emailCtrl.dispose();
+    _mobileCtrl.dispose();
+    _altMobileCtrl.dispose();
+    _addressCtrl.dispose();
+    _cityCtrl.dispose();
+    _stateCtrl.dispose();
+    _pinCodeCtrl.dispose();
+    _institutionCtrl.dispose();
+    _boardCtrl.dispose();
+    _scoreCtrl.dispose();
+    _yearCtrl.dispose();
+    _sub1Ctrl.dispose();
+    _sub2Ctrl.dispose();
+    _sub3Ctrl.dispose();
+    _entranceCtrl.dispose();
+    _sopCtrl.dispose();
+    _passwordCtrl.dispose();
+    _confirmPasswordCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2005),
+      firstDate: DateTime(1980),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryRed,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        final dateStr = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+        _dobCtrl.text = dateStr;
+        if (_passwordCtrl.text.isEmpty) {
+          _passwordCtrl.text = dateStr;
+          _confirmPasswordCtrl.text = dateStr;
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -201,38 +399,54 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
     return Center(
       child: Column(
         children: [
-          Stack(
-            children: [
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    width: 3,
-                  ),
-                  color: Colors.white.withValues(alpha: 0.12),
-                ),
-                child: const Icon(Icons.person, color: Colors.white, size: 44),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+          GestureDetector(
+            onTap: _pickProfileImage,
+            child: Stack(
+              children: [
+                Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      width: 3,
+                    ),
+                    color: Colors.white.withValues(alpha: 0.12),
+                    image: _profileImage != null
+                        ? DecorationImage(
+                            image: NetworkImage(_profileImage!.path), 
+                            fit: BoxFit.cover,
+                          )
+                        : (_existingProfileUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(_existingProfileUrl!),
+                                fit: BoxFit.cover,
+                              )
+                            : null),
                   ),
-                  child: Icon(
-                    Icons.camera_alt_rounded,
-                    color: AppColors.primaryRed,
-                    size: 14,
+                  child: (_profileImage == null && _existingProfileUrl == null)
+                      ? const Icon(Icons.person, color: Colors.white, size: 44)
+                      : null,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.camera_alt_rounded,
+                      color: AppColors.primaryRed,
+                      size: 14,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
           const SizedBox(height: 10),
           const Text(
@@ -451,12 +665,18 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
         ),
         const SizedBox(height: 30),
         _row(isMobile, [
-          _field("First Name", Icons.person_outline_rounded),
-          _field("Last Name", Icons.person_outline_rounded),
+          _field("First Name", Icons.person_outline_rounded, controller: _firstNameCtrl),
+          _field("Last Name", Icons.person_outline_rounded, controller: _lastNameCtrl),
         ]),
-        const SizedBox(height: 18),
         _row(isMobile, [
-          _field("Date of Birth", Icons.cake_rounded, hint: "DD / MM / YYYY"),
+          _field(
+            "Date of Birth", 
+            Icons.cake_rounded, 
+            hint: "DD/MM/YYYY", 
+            controller: _dobCtrl,
+            readOnly: true,
+            onTap: () => _selectDate(context),
+          ),
           _dropdown(
             "Gender",
             Icons.wc_rounded,
@@ -470,27 +690,35 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
           "Email Address",
           Icons.alternate_email_rounded,
           hint: "applicant@example.com",
+          controller: _emailCtrl,
         ),
+        const SizedBox(height: 18),
+        _row(isMobile, [
+          _field("Password", Icons.lock_outline_rounded, controller: _passwordCtrl, isPassword: true, hint: "Default is DOB"),
+          _field("Confirm Password", Icons.lock_reset_rounded, controller: _confirmPasswordCtrl, isPassword: true, hint: "Same as password"),
+        ]),
         const SizedBox(height: 18),
         _row(isMobile, [
           _field(
             "Mobile Number",
             Icons.phone_android_rounded,
             hint: "+91 9999 999 999",
+            controller: _mobileCtrl,
           ),
-          _field("Alternate Mobile", Icons.phone_outlined, hint: "Optional"),
+          _field("Alternate Mobile", Icons.phone_outlined, hint: "Optional", controller: _altMobileCtrl),
         ]),
         const SizedBox(height: 18),
         _field(
           "Full Address",
           Icons.location_on_rounded,
           hint: "Street, City, State, PIN Code",
+          controller: _addressCtrl,
         ),
         const SizedBox(height: 18),
         _row(isMobile, [
-          _field("City", Icons.location_city_rounded),
-          _field("State", Icons.map_rounded),
-          _field("PIN Code", Icons.pin_drop_rounded, hint: "6-digit"),
+          _field("City", Icons.location_city_rounded, controller: _cityCtrl),
+          _field("State", Icons.map_rounded, controller: _stateCtrl),
+          _field("PIN Code", Icons.pin_drop_rounded, hint: "6-digit", controller: _pinCodeCtrl),
         ]),
       ],
     );
@@ -521,8 +749,9 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
             "Institution Name",
             Icons.account_balance_rounded,
             hint: "Previous school/college",
+            controller: _institutionCtrl,
           ),
-          _field("Board / University", Icons.corporate_fare_rounded),
+          _field("Board / University", Icons.corporate_fare_rounded, controller: _boardCtrl),
         ]),
         const SizedBox(height: 18),
         _row(isMobile, [
@@ -530,24 +759,27 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
             "Percentage / CGPA",
             Icons.percent_rounded,
             hint: "e.g. 92.4 or 8.5",
+            controller: _scoreCtrl,
           ),
           _field(
             "Year of Passing",
             Icons.calendar_today_rounded,
             hint: "e.g. 2023",
+            controller: _yearCtrl,
           ),
         ]),
         const SizedBox(height: 18),
         _row(isMobile, [
-          _field("Subject 1 Marks", Icons.book_rounded),
-          _field("Subject 2 Marks", Icons.book_rounded),
-          _field("Subject 3 Marks", Icons.book_rounded),
+          _field("Subject 1 Marks", Icons.book_rounded, controller: _sub1Ctrl),
+          _field("Subject 2 Marks", Icons.book_rounded, controller: _sub2Ctrl),
+          _field("Subject 3 Marks", Icons.book_rounded, controller: _sub3Ctrl),
         ]),
         const SizedBox(height: 18),
         _field(
           "Entrance Exam Score (if any)",
           Icons.assignment_rounded,
           hint: "e.g. JEE Main 85 percentile",
+          controller: _entranceCtrl,
         ),
       ],
     );
@@ -565,60 +797,38 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
           Icons.library_books_rounded,
         ),
         const SizedBox(height: 30),
-        GridView.count(
-          crossAxisCount: width < 600 ? 1 : (width < 900 ? 2 : 3),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: width < 600 ? 1.8 : 2.2,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
-          children: _programs.map((p) {
-            final sel = _selectedProgram == p;
-            return GestureDetector(
-              onTap: () => setState(() => _selectedProgram = p),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: sel ? AppColors.primaryRed : Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: sel ? AppColors.primaryRed : Colors.grey.shade200,
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: sel
-                          ? AppColors.primaryRed.withValues(alpha: 0.22)
-                          : Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 14,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.school_rounded,
-                      color: sel ? Colors.white : AppColors.primaryRed,
-                      size: 18,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      p,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: sel ? Colors.white : Colors.black87,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ),
+        if (_isLoadingDropdowns)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else
+          _row(isMobile, [
+            _dynamicDropdown(
+              "Select Branch",
+              Icons.business_center_rounded,
+              _branches,
+              _selectedBranch,
+              (val) {
+                if (val != null) {
+                  setState(() {
+                    _selectedBranch = val;
+                    _selectedProgram = null; 
+                  });
+                  _loadCoursesForBranch(val);
+                }
+              },
+            ),
+            _dynamicDropdown(
+              "Select Course",
+              Icons.school_rounded,
+              _courses,
+              _selectedProgram,
+              _courses.isEmpty ? null : (val) {
+                setState(() => _selectedProgram = val!);
+              },
+            ),
+          ]),
         const SizedBox(height: 22),
         _row(isMobile, [
           _dropdown(
@@ -637,10 +847,13 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
           ),
         ]),
         const SizedBox(height: 18),
+        _buildIdPreview(),
+        const SizedBox(height: 18),
         _field(
           "Statement of Purpose (Why this program?)",
           Icons.edit_note_rounded,
           hint: "Brief statement...",
+          controller: _sopCtrl,
         ),
       ],
     );
@@ -652,31 +865,31 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
         "name": "10th Marksheet",
         "icon": Icons.description_rounded,
         "color": const Color(0xFF4F46E5),
+        "key": "marksheet10",
       },
       {
         "name": "12th Marksheet",
         "icon": Icons.description_rounded,
         "color": const Color(0xFF0891B2),
+        "key": "marksheet12",
       },
       {
         "name": "Transfer Certificate",
         "icon": Icons.folder_rounded,
         "color": const Color(0xFF7C3AED),
+        "key": "transferCertificate",
       },
       {
         "name": "Aadhar Card",
         "icon": Icons.badge_rounded,
         "color": AppColors.primaryRed,
-      },
-      {
-        "name": "Passport Photo",
-        "icon": Icons.photo_camera_rounded,
-        "color": const Color(0xFF059669),
+        "key": "aadharCard",
       },
       {
         "name": "Entrance Score Card",
         "icon": Icons.assignment_rounded,
         "color": const Color(0xFFD97706),
+        "key": "entranceScoreCard",
       },
     ];
     return Column(
@@ -698,66 +911,75 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
           mainAxisSpacing: 14,
           children: docs.map((d) {
             final color = d['color'] as Color;
-            return Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: color.withValues(alpha: 0.2),
-                  width: 1.5,
+            final docKey = d['key'] as String;
+            final isPicked = _documentFiles.containsKey(docKey) && _documentFiles[docKey] != null;
+            final isExisting = _existingDocumentUrls.containsKey(docKey) && _existingDocumentUrls[docKey]!.isNotEmpty;
+            final hasDoc = isPicked || isExisting;
+            
+            return GestureDetector(
+              onTap: () => _pickDocument(docKey),
+              child: Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: hasDoc ? Colors.green : color.withValues(alpha: 0.2),
+                    width: hasDoc ? 2 : 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(d['icon'] as IconData, color: color, size: 22),
-                  ),
-                  const SizedBox(height: 10),
-                  Flexible(
-                    child: Text(
-                      d['name'] as String,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: hasDoc ? Colors.green.withValues(alpha: 0.1) : color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      child: Icon(hasDoc ? Icons.check_circle_rounded : d['icon'] as IconData, 
+                            color: hasDoc ? Colors.green : color, size: 22),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      "Tap to Upload",
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: color,
-                        fontWeight: FontWeight.bold,
+                    const SizedBox(height: 10),
+                    Flexible(
+                      child: Text(
+                        d['name'] as String,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: hasDoc ? Colors.green.withValues(alpha: 0.08) : color.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        hasDoc ? "Uploaded" : "Tap to Upload",
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: hasDoc ? Colors.green : color,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }).toList(),
@@ -944,58 +1166,41 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
     );
   }
 
-  Widget _field(
-    String label,
-    IconData icon, {
-    String? hint,
-    bool obscure = false,
-  }) {
+  Widget _field(String label, IconData icon, {String? hint, TextEditingController? controller, bool isPassword = false, bool readOnly = false, VoidCallback? onTap}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: FontWeight.bold,
-            color: Colors.black54,
+            color: Color(0xFF1B3E5F),
           ),
         ),
-        const SizedBox(height: 7),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(13),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: TextField(
-            obscureText: obscure,
-            decoration: InputDecoration(
-              hintText: hint ?? "Enter $label",
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-              prefixIcon: Icon(icon, color: AppColors.primaryRed, size: 18),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(13),
-                borderSide: BorderSide(color: Colors.grey.shade100),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(13),
-                borderSide: BorderSide(color: Colors.grey.shade100),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(13),
-                borderSide: BorderSide(color: AppColors.primaryRed, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 15,
-              ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          obscureText: isPassword,
+          readOnly: readOnly,
+          onTap: onTap,
+          decoration: InputDecoration(
+            hintText: hint,
+            prefixIcon: Icon(icon, size: 18, color: AppColors.primaryRed),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppColors.primaryRed, width: 1.5),
             ),
           ),
         ),
@@ -1060,15 +1265,222 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
     );
   }
 
+  Widget _dynamicDropdown(
+    String label,
+    IconData icon,
+    List<dynamic> items,
+    String? value,
+    Function(String?)? onChange,
+  ) {
+    // Determine effective background color
+    Color bgColor = items.isEmpty ? Colors.grey.shade100 : Colors.white;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: Colors.black54,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: Colors.grey.shade100),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: AppColors.primaryRed, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: items.any((e) => e['_id'] == value) ? value : null,
+                    hint: Text(items.isEmpty ? 'Not Available' : 'Select $label', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                    isExpanded: true,
+                    style: const TextStyle(color: Colors.black87, fontSize: 13),
+                    onChanged: onChange,
+                    items: items
+                        .map((e) => DropdownMenuItem<String>(value: e['_id'], child: Text(e['name'] ?? '')))
+                        .toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIdPreview() {
+    final branchId = _selectedBranch;
+    final branch = _branches.firstWhere((b) => b['_id'] == branchId, orElse: () => null);
+    if (branch == null) return const SizedBox();
+    
+    // Extract only alphabets from branch name/code
+    String rawCode = branch['branchCode'] ?? (branch['name'] as String);
+    String branchCode = rawCode.replaceAll(RegExp(r'[^A-Z]'), '').toUpperCase();
+    if (branchCode.isEmpty) branchCode = "STU"; // Fallback
+
+    final yearPrefix = _selectedSession.split('-')[0];
+    final dobParts = _dobCtrl.text.split('/');
+    final dayPart = dobParts.isNotEmpty && dobParts[0].isNotEmpty ? dobParts[0].padLeft(2, '0') : "DD";
+    final previewId = "$yearPrefix$branchCode$dayPart";
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.primaryRed.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.badge_rounded, color: AppColors.primaryRed, size: 24),
+          const SizedBox(width: 15),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Projected Student ID",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                previewId,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF1B3E5F),
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Container(
+             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+             decoration: BoxDecoration(
+               color: AppColors.primaryRed,
+               borderRadius: BorderRadius.circular(8),
+             ),
+             child: const Text(
+               "AUTO-GENERATED",
+               style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+             ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _saveApplication() async {
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      setState(() => _isSaving = false);
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Application submitted successfully!")),
-      );
+
+    try {
+      // 1. Upload Profile Photo
+      String? profileUrl = _existingProfileUrl;
+      if (_profileImage != null) {
+        profileUrl = await ApplicationService.uploadToCloudinary(_profileImage);
+      }
+
+      // 2. Upload Documents
+      final Map<String, String> documentUrls = Map<String, String>.from(_existingDocumentUrls);
+      for (var entry in _documentFiles.entries) {
+        if (entry.value != null) {
+          final url = await ApplicationService.uploadToCloudinary(entry.value);
+          if (url != null) {
+            documentUrls[entry.key] = url;
+          }
+        }
+      }
+
+      // 3. Prepare Final Data
+      final applicationData = {
+        "applicantPhoto": profileUrl,
+        "firstName": _firstNameCtrl.text,
+        "lastName": _lastNameCtrl.text,
+        "dob": _dobCtrl.text,
+        "gender": _selectedGender,
+        "email": _emailCtrl.text,
+        "mobile": _mobileCtrl.text,
+        "alternateMobile": _altMobileCtrl.text,
+        "address": _addressCtrl.text,
+        "city": _cityCtrl.text,
+        "state": _stateCtrl.text,
+        "pinCode": _pinCodeCtrl.text,
+
+        "highestQualification": _selectedQualification,
+        "institutionName": _institutionCtrl.text,
+        "boardUniversity": _boardCtrl.text,
+        "percentageCGPA": _scoreCtrl.text,
+        "yearOfPassing": _yearCtrl.text,
+        "subjectMarks": {
+          "subject1": _sub1Ctrl.text,
+          "subject2": _sub2Ctrl.text,
+          "subject3": _sub3Ctrl.text,
+        },
+        "entranceScore": _entranceCtrl.text,
+
+        "selectedBranch": _selectedBranch,
+        "selectedProgram": _selectedProgram,
+        "sessionYear": _selectedSession,
+        "category": _selectedCategory,
+        "statementOfPurpose": _sopCtrl.text,
+        "password": _passwordCtrl.text,
+
+        "documents": documentUrls,
+      };
+
+      if (_passwordCtrl.text != _confirmPasswordCtrl.text) {
+        throw Exception("Passwords do not match!");
+      }
+
+      // 4. Submit to Backend
+      if (widget.application != null) {
+        await ApplicationService.updateApplication(widget.application!['_id'], applicationData);
+      } else {
+        await ApplicationService.submitApplication(applicationData);
+      }
+
+      if (mounted) {
+        setState(() => _isSaving = false);
+        Navigator.pop(context, true); // Return true to indicate refresh needed
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.application != null ? "Application updated successfully!" : "Application submitted successfully!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Submission failed: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

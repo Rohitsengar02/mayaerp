@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../../core/services/library_service.dart';
+import 'package:intl/intl.dart';
 
 class FinesScreen extends StatefulWidget {
   const FinesScreen({super.key});
@@ -9,35 +11,84 @@ class FinesScreen extends StatefulWidget {
 }
 
 class _FinesScreenState extends State<FinesScreen> {
-  final List<Map<String, dynamic>> _fines = [
-    {
-      "student": "Bob Jones",
-      "id": "MIT-2023-015",
-      "book": "Clean Code",
-      "days": 12,
-      "amount": "₹ 120",
-      "status": "Unpaid",
-      "date": "Feb 25, 2026",
-    },
-    {
-      "student": "Eve Davis",
-      "id": "MIT-2024-089",
-      "book": "Design Patterns",
-      "days": 5,
-      "amount": "₹ 50",
-      "status": "Unpaid",
-      "date": "Mar 01, 2026",
-    },
-    {
-      "student": "Alice Smith",
-      "id": "MIT-2024-001",
-      "book": "Introduction to Algorithms",
-      "days": 2,
-      "amount": "₹ 20",
-      "status": "Paid",
-      "date": "Feb 20, 2026",
-    },
-  ];
+  List<dynamic> _allCirculations = [];
+  List<dynamic> _overdueFines = [];
+  bool _isLoading = true;
+  double _totalDues = 0;
+  int _overdueCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      setState(() => _isLoading = true);
+      final data = await LibraryService.getCirculation();
+      setState(() {
+        _allCirculations = data;
+        _overdueFines = data.where((i) => (i['fine'] ?? 0) > 0).toList();
+        _totalDues = _overdueFines.fold(0.0, (sum, item) => sum + (item['fine'] ?? 0).toDouble());
+        _overdueCount = _overdueFines.length;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _payFine(dynamic fineRecord) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Confirm Payment", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Student: ${fineRecord['student']['firstName']} ${fineRecord['student']['lastName']}"),
+            Text("Book: ${fineRecord['book']['title']}"),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(12)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Amount to Collect", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text("₹ ${fineRecord['fine']}", style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.green, fontSize: 18))
+                ],
+              ),
+            )
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text("Confirm Paid", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        setState(() => _isLoading = true);
+        await LibraryService.payFine(fineRecord['_id']);
+        _loadData(); // Refresh list
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment successful! Loan renewed.")));
+      } catch (e) {
+        if (mounted) {
+           setState(() => _isLoading = false);
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,47 +96,35 @@ class _FinesScreenState extends State<FinesScreen> {
     
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(isMobile ? 16 : 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(isMobile),
-            const SizedBox(height: 32),
-            _buildStatsRow(isMobile),
-            const SizedBox(height: 32),
-            _buildFinesList(isMobile),
-          ],
-        ),
-      ),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : RefreshIndicator(
+            onRefresh: _loadData,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(isMobile ? 16 : 32),
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(isMobile),
+                  const SizedBox(height: 32),
+                  _buildStatsRow(isMobile),
+                  const SizedBox(height: 32),
+                  _buildFinesList(isMobile),
+                ],
+              ),
+            ),
+          ),
     );
   }
 
   Widget _buildHeader(bool isMobile) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Fines & Penalties",
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1E293B),
-                  letterSpacing: -1,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "Manage student dues, overdues, and lost book penalties.",
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
-              ),
-            ],
-          ),
-        ),
+        const Text("Fines & Penalties", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF1E293B), letterSpacing: -1)),
+        const SizedBox(height: 4),
+        Text("Detailed tracking of all outstanding student dues and late return penalties.", style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
       ],
     ).animate().fadeIn().slideY(begin: -0.1);
   }
@@ -95,9 +134,9 @@ class _FinesScreenState extends State<FinesScreen> {
       spacing: 16,
       runSpacing: 16,
       children: [
-        _statCard("Total Collected", "₹ 2,450", Icons.check_circle_outline, Colors.green, isMobile),
-        _statCard("Pending Dues", "₹ 170", Icons.warning_amber_rounded, Colors.orange, isMobile),
-        _statCard("Overdue Books", "12", Icons.book_rounded, Colors.red, isMobile),
+        _statCard("Total Dues", "₹ $_totalDues", Icons.money_off_rounded, Colors.orange, isMobile),
+        _statCard("Overdue Books", "$_overdueCount", Icons.book_rounded, Colors.red, isMobile),
+        _statCard("Verified Issues", "${_allCirculations.length}", Icons.check_circle_outline, Colors.blue, isMobile),
       ],
     ).animate().fadeIn(delay: 100.ms);
   }
@@ -106,32 +145,11 @@ class _FinesScreenState extends State<FinesScreen> {
     return Container(
       width: isMobile ? double.infinity : 240,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withOpacity(0.2)), boxShadow: [BoxShadow(color: color.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 8))]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Text(title, style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold, fontSize: 13))),
-            ],
-          ),
+          Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: color, size: 20)), const SizedBox(width: 12), Text(title, style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold, fontSize: 13))]),
           const SizedBox(height: 16),
           Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: color)),
         ],
@@ -140,6 +158,9 @@ class _FinesScreenState extends State<FinesScreen> {
   }
 
   Widget _buildFinesList(bool isMobile) {
+    if (_overdueFines.isEmpty) {
+      return Container(padding: const EdgeInsets.all(40), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: const Center(child: Text("No pending fines found. All students are up to date!", style: TextStyle(color: Colors.grey))));
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -150,9 +171,8 @@ class _FinesScreenState extends State<FinesScreen> {
               children: [
                 Expanded(flex: 2, child: _headerText("STUDENT")),
                 Expanded(flex: 2, child: _headerText("BOOK")),
-                Expanded(flex: 1, child: _headerText("OVERDUE")),
-                Expanded(flex: 1, child: _headerText("FINE")),
-                Expanded(flex: 1, child: _headerText("STATUS")),
+                Expanded(flex: 1, child: _headerText("DUE DATE")),
+                Expanded(flex: 1, child: _headerText("FINE AMOUNT")),
                 SizedBox(width: 100, child: _headerText("ACTIONS", align: TextAlign.center)),
               ],
             ),
@@ -160,22 +180,15 @@ class _FinesScreenState extends State<FinesScreen> {
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: _fines.length,
+          itemCount: _overdueFines.length,
           itemBuilder: (context, index) {
-            final f = _fines[index];
+            final f = _overdueFines[index];
             return Container(
               margin: EdgeInsets.only(bottom: isMobile ? 12 : 16),
               padding: EdgeInsets.all(isMobile ? 16 : 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [
-                  BoxShadow(color: const Color(0xFF6366F1).withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 8)),
-                ],
-              ),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: const Color(0xFF6366F1).withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 8))]),
               child: isMobile ? _buildMobileFineRow(f) : _buildDesktopFineRow(f),
-            ).animate().fadeIn(delay: (50 * index).ms).slideX(begin: 0.05);
+            ).animate().fadeIn(delay: (20 * index).ms).slideX(begin: 0.05);
           },
         ),
       ],
@@ -184,99 +197,67 @@ class _FinesScreenState extends State<FinesScreen> {
 
   Text _headerText(String t, {TextAlign? align}) => Text(t, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade500, fontSize: 12, letterSpacing: 0.5), textAlign: align);
 
-  Widget _buildDesktopFineRow(Map<String, dynamic> f) {
-    bool unpaid = f['status'] == 'Unpaid';
+  Widget _buildDesktopFineRow(dynamic f) {
+    final student = f['student'] ?? {};
+    final book = f['book'] ?? {};
+    final dueDateStr = f['dueDate'] != null ? DateFormat('MMM dd, yyyy').format(DateTime.parse(f['dueDate'])) : "N/A";
+
     return Row(
       children: [
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(f['student'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              Text(f['id'], style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
-            ],
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(f['book'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
-              Text("Due: ${f['date']}", style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
-            ],
-          ),
-        ),
-        Expanded(flex: 1, child: Text("${f['days']} Days", style: TextStyle(color: unpaid ? Colors.red : Colors.grey, fontWeight: FontWeight.bold))),
-        Expanded(flex: 1, child: Text(f['amount'], style: TextStyle(color: unpaid ? Colors.orange : Colors.green, fontWeight: FontWeight.w900, fontSize: 16))),
-        Expanded(flex: 1, child: Align(alignment: Alignment.centerLeft, child: _statusBadge(f['status']))),
+        Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text("${student['firstName']} ${student['lastName']}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          Text(student['studentId'] ?? "N/A", style: TextStyle(color: Colors.grey.shade500, fontSize: 12))
+        ])),
+        Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(book['title'] ?? "Unknown", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+          Text(book['author'] ?? "Unknown", style: TextStyle(color: Colors.grey.shade500, fontSize: 12))
+        ])),
+        Expanded(flex: 1, child: Text(dueDateStr, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+        Expanded(flex: 1, child: Text("₹ ${f['fine']}", style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 18))),
         SizedBox(
           width: 100,
-          child: unpaid
-              ? Flexible(
-                child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                    child: const Text("Pay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-              )
-              : const SizedBox(),
+          child: Center(
+            child: ElevatedButton(
+              onPressed: () => _payFine(f),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+              child: const Text("Pay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildMobileFineRow(Map<String, dynamic> f) {
-    bool unpaid = f['status'] == 'Unpaid';
+  Widget _buildMobileFineRow(dynamic f) {
+    final student = f['student'] ?? {};
+    final book = f['book'] ?? {};
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(child: Text(f['student'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
-            _statusBadge(f['status']),
-          ],
-        ),
-        Text(f['id'], style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text("${student['firstName']} ${student['lastName']}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          _statusBadge("Unpaid"),
+        ]),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            const Icon(Icons.book_rounded, size: 14, color: Colors.grey),
-            const SizedBox(width: 6),
-            Expanded(child: Text(f['book'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-          ],
-        ),
+        Text(book['title'] ?? "Unknown", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("${f['days']} Days Overdue", style: TextStyle(color: unpaid ? Colors.red : Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                Text(f['amount'], style: TextStyle(color: unpaid ? Colors.orange : Colors.green, fontWeight: FontWeight.w900, fontSize: 18)),
-              ],
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+           Text("Fine: ₹ ${f['fine']}", style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 20)),
+           ElevatedButton(
+              onPressed: () => _payFine(f),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+              child: const Text("Pay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
-            if (unpaid)
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                child: const Text("Pay Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-          ],
-        ),
+        ]),
       ],
     );
   }
 
   Widget _statusBadge(String status) {
-    bool unpaid = status == 'Unpaid';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: (unpaid ? Colors.red : Colors.green).withOpacity(0.1), borderRadius: BorderRadius.circular(100)),
-      child: Text(status.toUpperCase(), style: TextStyle(color: unpaid ? Colors.red : Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(100)),
+      child: Text(status.toUpperCase(), style: const TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold)),
     );
   }
 }

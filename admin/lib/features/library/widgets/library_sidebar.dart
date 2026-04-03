@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/app_constants.dart';
 import '../../../core/app_theme.dart';
+import '../../onboarding/screens/showcase_screen.dart';
+import '../../../core/services/auth_service.dart';
 
 class LibrarySidebar extends StatelessWidget {
   final int selectedIndex;
@@ -180,10 +182,21 @@ class LibrarySidebar extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.logout_rounded,
-                  size: 20,
-                  color: Colors.grey.shade400,
+                IconButton(
+                  onPressed: () async {
+                    await AuthService.logout();
+                    if (context.mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const ShowcaseScreen()),
+                        (route) => false,
+                      );
+                    }
+                  },
+                  icon: Icon(
+                    Icons.logout_rounded,
+                    size: 20,
+                    color: Colors.grey.shade400,
+                  ),
                 ),
               ],
             ),

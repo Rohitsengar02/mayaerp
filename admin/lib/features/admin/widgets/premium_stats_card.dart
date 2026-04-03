@@ -11,6 +11,15 @@ class PremiumStatsCard extends StatefulWidget {
   final List<Color> gradientColors;
   final List<Offset> chartPoints;
   final Color chartColor;
+  final String selectedTimeline;
+  final ValueChanged<String> onTimelineChanged;
+  
+  final String bottomLabel1;
+  final String bottomValue1;
+  final String bottomLabel2;
+  final String bottomValue2;
+  final String bottomLabel3;
+  final String bottomValue3;
 
   const PremiumStatsCard({
     super.key,
@@ -22,6 +31,14 @@ class PremiumStatsCard extends StatefulWidget {
     required this.gradientColors,
     required this.chartPoints,
     required this.chartColor,
+    required this.selectedTimeline,
+    required this.onTimelineChanged,
+    this.bottomLabel1 = "Today's Target",
+    this.bottomValue1 = "85%",
+    this.bottomLabel2 = "Active Now",
+    this.bottomValue2 = "248",
+    this.bottomLabel3 = "Weekly Avg",
+    this.bottomValue3 = "92%",
   });
 
   @override
@@ -192,7 +209,6 @@ class _PremiumStatsCardState extends State<PremiumStatsCard> with SingleTickerPr
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _timeTab("1H"),
-                  _timeTab("1D", isSelected: true),
                   _timeTab("1W"),
                   _timeTab("1M"),
                   _timeTab("1Y"),
@@ -208,9 +224,9 @@ class _PremiumStatsCardState extends State<PremiumStatsCard> with SingleTickerPr
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: _miniStat("Today's Target", "85%")),
-                Expanded(child: Center(child: _miniStat("Active Now", "248", isGreen: true))),
-                Expanded(child: Align(alignment: Alignment.centerRight, child: _miniStat("Weekly Avg", "92%"))),
+                Expanded(child: _miniStat(widget.bottomLabel1, widget.bottomValue1)),
+                Expanded(child: Center(child: _miniStat(widget.bottomLabel2, widget.bottomValue2, isGreen: true))),
+                Expanded(child: Align(alignment: Alignment.centerRight, child: _miniStat(widget.bottomLabel3, widget.bottomValue3))),
               ],
             ),
           ),
@@ -219,28 +235,26 @@ class _PremiumStatsCardState extends State<PremiumStatsCard> with SingleTickerPr
     );
   }
 
-  Widget _timeTab(String label, {bool isSelected = false}) {
+  Widget _timeTab(String label) {
+    bool isSelected = widget.selectedTimeline == label;
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? widget.chartColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: widget.chartColor.withOpacity(0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+      child: InkWell(
+        onTap: () => widget.onTimelineChanged(label),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              color: isSelected ? Colors.white : Colors.white.withOpacity(0.8),
             ),
-          ] : null,
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.w900,
-            color: isSelected ? widget.gradientColors.first : Colors.white.withOpacity(0.8),
           ),
         ),
       ),

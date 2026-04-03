@@ -4,6 +4,9 @@ import '../../../core/app_constants.dart';
 import '../../../core/app_theme.dart';
 import 'branch_detail_screen.dart';
 import 'create_branch_screen.dart';
+import '../../../core/services/branch_service.dart';
+import '../../../core/services/course_service.dart';
+import '../../../core/services/student_service.dart';
 
 class AcademicManagementScreen extends StatefulWidget {
   const AcademicManagementScreen({super.key});
@@ -15,69 +18,89 @@ class AcademicManagementScreen extends StatefulWidget {
 
 class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
   Map<String, dynamic>? _selectedBranch;
-
-  final List<Map<String, dynamic>> _branches = [
-    {
-      "name": "School of Computer Science",
-      "code": "SCS",
-      "dean": "Dr. Rohit Kumar",
-      "coursesCount": 12,
-      "studentsCount": 420,
-      "occupancy": 85,
-      "departments": 5,
-      "researchHubs": 3,
-      "color": Colors.blue,
-      "icon": Icons.computer_rounded,
-      "gradient": [Color(0xFF2196F3), Color(0xFF00BCD4)],
-    },
-    {
-      "name": "School of Business",
-      "code": "SOB",
-      "dean": "Dr. Anita Sharma",
-      "coursesCount": 8,
-      "studentsCount": 280,
-      "occupancy": 72,
-      "departments": 3,
-      "researchHubs": 1,
-      "color": Colors.purple,
-      "icon": Icons.business_center_rounded,
-      "gradient": [Color(0xFF9C27B0), Color(0xFFE91E63)],
-    },
-    {
-      "name": "Mechanical Engineering",
-      "code": "SMED",
-      "dean": "Dr. Vikas Singh",
-      "coursesCount": 6,
-      "studentsCount": 150,
-      "occupancy": 64,
-      "departments": 4,
-      "researchHubs": 2,
-      "color": Colors.orange,
-      "icon": Icons.settings_rounded,
-      "gradient": [Color(0xFFFF9800), Color(0xFFFF5722)],
-    },
-    {
-      "name": "Applied Sciences",
-      "code": "SAS",
-      "dean": "Dr. Priya Patel",
-      "coursesCount": 5,
-      "studentsCount": 120,
-      "occupancy": 58,
-      "departments": 2,
-      "researchHubs": 4,
-      "color": Colors.green,
-      "icon": Icons.science_rounded,
-      "gradient": [Color(0xFF4CAF50), Color(0xFF8BC34A)],
-    },
-  ];
+  List<dynamic> _branches = [];
+  bool _isLoading = true;
 
   @override
+  void initState() {
+    super.initState();
+    _loadBranches();
+  }
+
+  Future<void> _loadBranches() async {
+    try {
+      setState(() => _isLoading = true);
+      final branches = await BranchService.getAllBranches();
+      final courses = await CourseService.getAllCourses();
+      final students = await StudentService.getAllStudents();
+      
+      for (var b in branches) {
+        b['coursesCount'] = courses.where((c) {
+          final bId = c['branchId'] is Map ? c['branchId']['_id'] : c['branchId'];
+          return bId == b['_id'];
+        }).length;
+        b['studentsCount'] = students.where((s) => s['selectedBranch'] == b['_id']).length;
+      }
+
+      if (mounted) {
+        setState(() {
+          _branches = branches;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading branches: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  IconData _getIcon(String? name) {
+    switch (name) {
+      case 'architecture_rounded': return Icons.architecture_rounded;
+      case 'biotech_rounded': return Icons.biotech_rounded;
+      case 'business_center_rounded': return Icons.business_center_rounded;
+      case 'computer_rounded': return Icons.computer_rounded;
+      case 'gavel_rounded': return Icons.gavel_rounded;
+      case 'medical_services_rounded': return Icons.medical_services_rounded;
+      case 'palette_rounded': return Icons.palette_rounded;
+      case 'science_rounded': return Icons.science_rounded;
+      case 'settings_rounded': return Icons.settings_rounded;
+      default: return Icons.business_center_rounded;
+    }
+  }
+
+  Color _getColor(String? hex) {
+    if (hex == null || hex.isEmpty) return Colors.blue;
+    try {
+      final hexCode = hex.replaceAll('#', '');
+      return Color(int.parse('FF$hexCode', radix: 16));
+    } catch (e) {
+      return Colors.blue;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_selectedBranch != null) {
       return BranchDetailScreen(
-        branch: _selectedBranch!,
-        onBack: () => setState(() => _selectedBranch = null),
+        branch: {
+          ..._selectedBranch!,
+          'color': _getColor(_selectedBranch!['colorHex']),
+          'icon': _getIcon(_selectedBranch!['iconName']),
+          'dean': _selectedBranch!['deanName'],
+          'coursesCount': _selectedBranch!['coursesCount'] ?? 0,
+          'studentsCount': _selectedBranch!['studentsCount'] ?? 0,
+          'departments': _selectedBranch!['departments'] ?? 1,
+          'occupancy': _selectedBranch!['occupancy'] ?? 0,
+        },
+        onBack: () {
+          setState(() => _selectedBranch = null);
+          _loadBranches(); // Refresh in case courses were added
+        },
       );
     }
 
@@ -137,11 +160,11 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
                         ],
                       ),
                       SizedBox(height: isMobile ? 16 : 32),
-                      _buildBranchGrid(
-                        width,
-                        crossAxisCount,
-                        childAspectRatio,
-                      ),
+                      _isLoading 
+                          ? const Center(child: Padding(padding: EdgeInsets.all(40.0), child: CircularProgressIndicator()))
+                          : _branches.isEmpty 
+                              ? const Center(child: Padding(padding: EdgeInsets.all(40.0), child: Text("No branches configured yet.")))
+                              : _buildBranchGrid(width, crossAxisCount, childAspectRatio),
                     ],
                   ),
                 ),
@@ -176,10 +199,15 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CreateBranchScreen()),
-                ),
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CreateBranchScreen()),
+                  );
+                  if (result == true) {
+                    _loadBranches();
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryRed,
                   foregroundColor: Colors.white,
@@ -227,10 +255,15 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
             ],
           ),
           ElevatedButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CreateBranchScreen()),
-            ),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CreateBranchScreen()),
+              );
+              if (result == true) {
+                _loadBranches();
+              }
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryRed,
               foregroundColor: Colors.white,
@@ -388,6 +421,9 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
     final isMobile = width < 750;
     final isDesktop = width >= 1100;
 
+    final branchColor = _getColor(branch['colorHex']);
+    final customIcon = _getIcon(branch['iconName']);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -421,21 +457,19 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: branch['gradient'],
+                          colors: [branchColor, branchColor.withOpacity(0.7)],
                         ),
                         borderRadius: BorderRadius.circular(isDesktop ? 24 : 20),
                         boxShadow: [
                           BoxShadow(
-                            color: (branch['color'] as Color).withValues(
-                              alpha: 0.3,
-                            ),
+                            color: branchColor.withValues(alpha: 0.3),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
                         ],
                       ),
                       child: Icon(
-                        branch['icon'],
+                        customIcon,
                         color: Colors.white,
                         size: isDesktop ? 32 : 28,
                       ),
@@ -454,15 +488,13 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: (branch['color'] as Color).withValues(
-                                    alpha: 0.1,
-                                  ),
+                                  color: branchColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  branch['code'],
+                                  branch['code'] ?? "",
                                   style: TextStyle(
-                                    color: branch['color'],
+                                    color: branchColor,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: 0.5,
@@ -478,7 +510,7 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            branch['name'],
+                            branch['name'] ?? "",
                             style: TextStyle(
                               fontSize: isDesktop ? 20 : 18,
                               fontWeight: FontWeight.w900,
@@ -499,11 +531,57 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  branch['dean'],
+                                  branch['deanName'] ?? 'N/A',
                                   style: TextStyle(
                                     color: Colors.grey.shade500,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.email_outlined,
+                                size: 12,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  branch['contactEmail'] ?? 'N/A',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade500,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 12,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  "${branch['location'] ?? 'N/A'} (Est. ${branch['establishedYear'] ?? 'N/A'})",
+                                  style: TextStyle(
+                                    color: Colors.grey.shade500,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -526,17 +604,17 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
                     children: [
                       _iconStat(
                         Icons.library_books_rounded,
-                        "${branch['coursesCount']} Units",
+                        "${branch['coursesCount'] ?? 0} Units",
                       ),
                       const SizedBox(width: 16),
                       _iconStat(
                         Icons.groups_rounded,
-                        "${branch['studentsCount']} Seats",
+                        "${branch['studentsCount'] ?? 0} Students",
                       ),
                       const SizedBox(width: 16),
                       _iconStat(
                         Icons.hub_rounded,
-                        "${branch['departments']} Depts",
+                        "${branch['departments'] ?? 1} Depts",
                       ),
                     ],
                   ),
@@ -545,9 +623,9 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(100),
                   child: LinearProgressIndicator(
-                    value: branch['occupancy'] / 100,
+                    value: (branch['occupancy'] ?? 0) / 100.0,
                     backgroundColor: const Color(0xFFF1F1F1),
-                    valueColor: AlwaysStoppedAnimation(branch['color']),
+                    valueColor: AlwaysStoppedAnimation(branchColor),
                     minHeight: 4,
                   ),
                 ),
@@ -564,10 +642,10 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
                       ),
                     ),
                     Text(
-                      "${branch['occupancy']}% Capacity",
+                      "${branch['occupancy'] ?? 0}% Capacity",
                       style: TextStyle(
                         fontSize: 10,
-                        color: branch['color'],
+                        color: branchColor,
                         fontWeight: FontWeight.w900,
                       ),
                     ),

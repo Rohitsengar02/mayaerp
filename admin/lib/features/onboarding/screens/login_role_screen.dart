@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../admin/screens/admin_shell.dart';
 import '../../library/screens/library_shell.dart';
 import '../../staff/screens/staff_shell.dart';
+import '../../../core/services/auth_service.dart';
 
 class LoginRoleScreen extends StatefulWidget {
   final String role;
@@ -17,6 +18,64 @@ class LoginRoleScreen extends StatefulWidget {
 
 class _LoginRoleScreenState extends State<LoginRoleScreen> {
   bool _isLoading = false;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _handleLogin() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final userData = await AuthService.login(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+        widget.role,
+      );
+
+      if (!mounted) return;
+
+      if (userData != null) {
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, anim1, anim2) {
+              if (widget.role == 'Library') {
+                return const LibraryShell();
+              } else if (widget.role == 'Staff') {
+                return const StaffShell();
+              } else if (widget.role == 'Office') {
+                 // Placeholder for Office Shell
+                 return const Scaffold(body: Center(child: Text("Office Panel Loaded")));
+              }
+              return const AdminShell();
+            },
+            transitionsBuilder: (context, anim1, anim2, child) =>
+                FadeTransition(opacity: anim1, child: child),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -154,18 +213,20 @@ class _LoginRoleScreenState extends State<LoginRoleScreen> {
                     // FORM SECTION
                     Column(
                       children: [
-                        _buildPremiumTextField(
-                          "Email / Username",
-                          Icons.alternate_email_rounded,
-                          0,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildPremiumTextField(
-                          "Password",
-                          Icons.lock_outline_rounded,
-                          1,
-                          isObscure: true,
-                        ),
+                          _buildPremiumTextField(
+                            "Email / Username",
+                            Icons.alternate_email_rounded,
+                            0,
+                            controller: _emailController,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildPremiumTextField(
+                            "Password",
+                            Icons.lock_outline_rounded,
+                            1,
+                            isObscure: true,
+                            controller: _passwordController,
+                          ),
                       ],
                     ),
 
@@ -228,31 +289,7 @@ class _LoginRoleScreenState extends State<LoginRoleScreen> {
                               ],
                             ),
                             child: ElevatedButton(
-                              onPressed: () {
-                                setState(() => _isLoading = true);
-                                Future.delayed(const Duration(seconds: 2), () {
-                                  if (!mounted) return;
-                                  Navigator.pushReplacement(
-                                    context,
-                                    PageRouteBuilder(
-                                      pageBuilder: (context, anim1, anim2) {
-                                        if (widget.role == 'Library') {
-                                          return const LibraryShell();
-                                        } else if (widget.role == 'Staff') {
-                                          return const StaffShell();
-                                        }
-                                        return const AdminShell();
-                                      },
-                                      transitionsBuilder:
-                                          (context, anim1, anim2, child) =>
-                                              FadeTransition(
-                                                opacity: anim1,
-                                                child: child,
-                                              ),
-                                    ),
-                                  );
-                                });
-                              },
+                              onPressed: _isLoading ? null : _handleLogin,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 shadowColor: Colors.transparent,
@@ -300,6 +337,7 @@ class _LoginRoleScreenState extends State<LoginRoleScreen> {
     IconData icon,
     int index, {
     bool isObscure = false,
+    TextEditingController? controller,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -314,6 +352,7 @@ class _LoginRoleScreenState extends State<LoginRoleScreen> {
         ],
       ),
       child: TextField(
+        controller: controller,
         obscureText: isObscure,
         decoration: InputDecoration(
           labelText: label,

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/app_constants.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/services/inquiry_service.dart';
+import 'package:intl/intl.dart';
 
 class InquiriesScreen extends StatefulWidget {
   const InquiriesScreen({super.key});
@@ -13,6 +15,128 @@ class InquiriesScreen extends StatefulWidget {
 class _InquiriesScreenState extends State<InquiriesScreen> {
   String _activeFilter = 'All';
   bool _showAddSheet = false;
+  bool _isLoading = true;
+  List<dynamic> _inquiries = [];
+
+  // Form Controllers
+  final _nameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
+  final _courseCtrl = TextEditingController();
+  final _sourceCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _emailCtrl.dispose();
+    _cityCtrl.dispose();
+    _courseCtrl.dispose();
+    _sourceCtrl.dispose();
+    _noteCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await InquiryService.getAllInquiries();
+      setState(() {
+        _inquiries = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading inquiries: $e')));
+      }
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveInquiry() async {
+    if (_nameCtrl.text.isEmpty || _phoneCtrl.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name and Phone are required')),
+      );
+      return;
+    }
+
+    try {
+      final newInq = {
+        "name": _nameCtrl.text,
+        "phone": _phoneCtrl.text,
+        "email": _emailCtrl.text,
+        "course": _courseCtrl.text,
+        "city": _cityCtrl.text,
+        "source": _sourceCtrl.text.isEmpty ? 'Walk-in' : _sourceCtrl.text,
+        "status": "New",
+        "note": _noteCtrl.text,
+      };
+
+      await InquiryService.createInquiry(newInq);
+      _clearForm();
+      setState(() => _showAddSheet = false);
+      _loadData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Inquiry saved successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving inquiry: $e')));
+      }
+    }
+  }
+
+  void _clearForm() {
+    _nameCtrl.clear();
+    _phoneCtrl.clear();
+    _emailCtrl.clear();
+    _cityCtrl.clear();
+    _courseCtrl.clear();
+    _sourceCtrl.clear();
+    _noteCtrl.clear();
+  }
+
+  Future<void> _updateStatus(String id, String status) async {
+    try {
+      await InquiryService.updateInquiryStatus(id, status);
+      _loadData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error updating status: $e')));
+      }
+    }
+  }
+
+  Future<void> _deleteInquiry(String id) async {
+    try {
+      await InquiryService.deleteInquiry(id);
+      _loadData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error deleting inquiry: $e')));
+      }
+    }
+  }
 
   final List<String> _filters = [
     'All',
@@ -22,82 +146,7 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
     'Dropped',
   ];
 
-  final List<Map<String, dynamic>> _inquiries = [
-    {
-      "name": "Ramesh Kumar",
-      "phone": "+91 98765 43200",
-      "email": "ramesh@gmail.com",
-      "course": "B.Tech CSE",
-      "city": "Mumbai",
-      "source": "Walk-in",
-      "status": "New",
-      "date": "5 Mar 2026",
-      "note": "Interested in CSE, wants hostel info.",
-      "avatar": "https://i.pravatar.cc/150?img=13",
-    },
-    {
-      "name": "Anita Sharma",
-      "phone": "+91 98765 43201",
-      "email": "anita.s@gmail.com",
-      "course": "MBA Finance",
-      "city": "Delhi",
-      "source": "Phone",
-      "status": "Followup",
-      "date": "4 Mar 2026",
-      "note": "Called for fee structure details.",
-      "avatar": "https://i.pravatar.cc/150?img=47",
-    },
-    {
-      "name": "Nikhil Patel",
-      "phone": "+91 98765 43202",
-      "email": "nikhil.p@gmail.com",
-      "course": "B.Sc Physics",
-      "city": "Surat",
-      "source": "Online Form",
-      "status": "Resolved",
-      "date": "3 Mar 2026",
-      "note": "Applied online. Form submitted.",
-      "avatar": "https://i.pravatar.cc/150?img=22",
-    },
-    {
-      "name": "Pooja Mehta",
-      "phone": "+91 98765 43203",
-      "email": "pooja.m@gmail.com",
-      "course": "B.Com Hons",
-      "city": "Jaipur",
-      "source": "Walk-in",
-      "status": "New",
-      "date": "5 Mar 2026",
-      "note": "Came with parents. Wants scholarship info.",
-      "avatar": "https://i.pravatar.cc/150?img=44",
-    },
-    {
-      "name": "Suresh Nair",
-      "phone": "+91 98765 43204",
-      "email": "suresh.n@gmail.com",
-      "course": "B.Tech ECE",
-      "city": "Kochi",
-      "source": "Referral",
-      "status": "Dropped",
-      "date": "2 Mar 2026",
-      "note": "No response after initial call.",
-      "avatar": "https://i.pravatar.cc/150?img=52",
-    },
-    {
-      "name": "Kavya Reddy",
-      "phone": "+91 98765 43205",
-      "email": "kavya.r@gmail.com",
-      "course": "MBA HR",
-      "city": "Hyderabad",
-      "source": "Walk-in",
-      "status": "Followup",
-      "date": "4 Mar 2026",
-      "note": "Wants to visit campus before confirming.",
-      "avatar": "https://i.pravatar.cc/150?img=46",
-    },
-  ];
-
-  List<Map<String, dynamic>> get _filtered => _activeFilter == 'All'
+  List<dynamic> get _filtered => _activeFilter == 'All'
       ? _inquiries
       : _inquiries.where((i) => i['status'] == _activeFilter).toList();
 
@@ -116,17 +165,19 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                 children: [
                   _buildHeader(context, isMobile),
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.all(isMobile ? 16 : 32),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildStatsRow(isMobile),
-                          SizedBox(height: isMobile ? 24 : 32),
-                          _buildFiltersAndGrid(isMobile, width),
-                        ],
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : SingleChildScrollView(
+                            padding: EdgeInsets.all(isMobile ? 16 : 32),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildStatsRow(isMobile),
+                                SizedBox(height: isMobile ? 24 : 32),
+                                _buildFiltersAndGrid(isMobile, width),
+                              ],
+                            ),
+                          ),
                   ),
                 ],
               ),
@@ -153,31 +204,31 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                 Text(
-                   "Inquiries Management",
-                   style: AppTheme.titleStyle.copyWith(fontSize: 22),
-                 ),
-                 const SizedBox(height: 16),
-                 Row(
-                   children: [
-                     Expanded(
-                       child: _headerActionBtn(
-                         "Export", 
-                         Icons.file_download_rounded, 
-                         const Color(0xFF4F46E5),
-                       ),
-                     ),
-                     const SizedBox(width: 12),
-                     Expanded(
-                       child: _headerActionBtn(
-                         "Add Inquiry", 
-                         Icons.add_rounded, 
-                         AppColors.primaryRed,
-                         isPrimary: true,
-                       ),
-                     ),
-                   ],
-                 ),
+                Text(
+                  "Inquiries Management",
+                  style: AppTheme.titleStyle.copyWith(fontSize: 22),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _headerActionBtn(
+                        "Export",
+                        Icons.file_download_rounded,
+                        const Color(0xFF4F46E5),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _headerActionBtn(
+                        "Add Inquiry",
+                        Icons.add_rounded,
+                        AppColors.primaryRed,
+                        isPrimary: true,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             )
           : Row(
@@ -193,21 +244,24 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                     const SizedBox(height: 4),
                     Text(
                       "Track and manage student walk-in & phone inquiries",
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
                 Row(
                   children: [
                     _headerActionBtn(
-                      "Export", 
-                      Icons.file_download_rounded, 
+                      "Export",
+                      Icons.file_download_rounded,
                       const Color(0xFF4F46E5),
                     ),
                     const SizedBox(width: 14),
                     _headerActionBtn(
-                      "Add Inquiry", 
-                      Icons.add_rounded, 
+                      "Add Inquiry",
+                      Icons.add_rounded,
                       AppColors.primaryRed,
                       isPrimary: true,
                     ),
@@ -218,7 +272,12 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
     );
   }
 
-  Widget _headerActionBtn(String label, IconData icon, Color color, {bool isPrimary = false}) {
+  Widget _headerActionBtn(
+    String label,
+    IconData icon,
+    Color color, {
+    bool isPrimary = false,
+  }) {
     if (isPrimary) {
       return Container(
         decoration: BoxDecoration(
@@ -237,10 +296,7 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 13,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -261,21 +317,13 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
       style: ElevatedButton.styleFrom(
         backgroundColor: color.withOpacity(0.08),
         shadowColor: Colors.transparent,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 13,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       icon: Icon(icon, color: color, size: 17),
       label: Text(
         label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: color, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -470,7 +518,9 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: width < 600 ? 1 : (width < 900 ? 2 : (width < 1400 ? 3 : 4)),
+            crossAxisCount: width < 600
+                ? 1
+                : (width < 900 ? 2 : (width < 1400 ? 3 : 4)),
             childAspectRatio: width < 600 ? 1.4 : 1.6,
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
@@ -489,10 +539,7 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10),
         ],
       ),
       child: Row(
@@ -502,19 +549,14 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
             onTap: () => setState(() => _activeFilter = f),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: sel ? AppColors.primaryRed : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: sel
                     ? [
                         BoxShadow(
-                          color: AppColors.primaryRed.withValues(
-                            alpha: 0.2,
-                          ),
+                          color: AppColors.primaryRed.withValues(alpha: 0.2),
                           blurRadius: 6,
                         ),
                       ]
@@ -614,7 +656,7 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
 
               // Note
               Text(
-                inq['note'],
+                inq['note'] ?? 'No notes provided',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -647,7 +689,11 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                   ),
                   const Spacer(),
                   Text(
-                    inq['date'],
+                    inq['createdAt'] != null
+                        ? DateFormat(
+                            'MMM dd',
+                          ).format(DateTime.parse(inq['createdAt']))
+                        : inq['date'] ?? 'N/A',
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.grey.shade400,
@@ -659,11 +705,13 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _iconBtn(Icons.phone_rounded, Colors.green),
+                  _iconBtn(Icons.phone_rounded, Colors.green, () {}),
                   const SizedBox(width: 8),
-                  _iconBtn(Icons.edit_note_rounded, Colors.blue),
-                  const SizedBox(width: 8),
-                  _iconBtn(Icons.delete_outline_rounded, Colors.red),
+                  GestureDetector(child: _statusMenu(inq), onTap: () {}),
+                  const Spacer(),
+                  _iconBtn(Icons.delete_outline_rounded, Colors.red, () {
+                    _deleteInquiry(inq['_id']);
+                  }),
                 ],
               ),
             ],
@@ -701,8 +749,8 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
     ),
   );
 
-  Widget _iconBtn(IconData icon, Color color) => InkWell(
-    onTap: () {},
+  Widget _iconBtn(IconData icon, Color color, VoidCallback onTap) => InkWell(
+    onTap: onTap,
     borderRadius: BorderRadius.circular(8),
     child: Container(
       padding: const EdgeInsets.all(7),
@@ -713,6 +761,17 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
       child: Icon(icon, color: color, size: 16),
     ),
   );
+
+  Widget _statusMenu(dynamic inq) {
+    return PopupMenuButton<String>(
+      onSelected: (val) => _updateStatus(inq['_id'], val),
+      itemBuilder: (context) => _filters
+          .where((f) => f != 'All')
+          .map((f) => PopupMenuItem(value: f, child: Text(f)))
+          .toList(),
+      child: _iconBtn(Icons.edit_note_rounded, Colors.blue, () {}),
+    );
+  }
 
   Color _statusColor(String status) {
     switch (status) {
@@ -731,7 +790,6 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
 
   // ── ADD INQUIRY SHEET ──
   Widget _buildAddSheet(BuildContext context, bool isMobile) {
-
     return GestureDetector(
       onTap: () => setState(() => _showAddSheet = false),
       child: Container(
@@ -810,35 +868,44 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _sheetField("Student Name", Icons.person_rounded),
+                              _sheetField(
+                                "Student Name",
+                                Icons.person_rounded,
+                                controller: _nameCtrl,
+                              ),
                               const SizedBox(height: 16),
                               _sheetField(
                                 "Phone Number",
                                 Icons.phone_android_rounded,
                                 hint: "+91 9999 999 999",
+                                controller: _phoneCtrl,
                               ),
                               const SizedBox(height: 16),
                               _sheetField(
                                 "Email Address",
                                 Icons.alternate_email_rounded,
                                 hint: "student@example.com",
+                                controller: _emailCtrl,
                               ),
                               const SizedBox(height: 16),
                               _sheetField(
                                 "City / Location",
                                 Icons.location_city_rounded,
+                                controller: _cityCtrl,
                               ),
                               const SizedBox(height: 16),
                               _sheetField(
                                 "Course Interested In",
                                 Icons.school_rounded,
                                 hint: "e.g. B.Tech CSE",
+                                controller: _courseCtrl,
                               ),
                               const SizedBox(height: 16),
                               _sheetField(
                                 "Inquiry Source",
                                 Icons.sensors_rounded,
                                 hint: "Walk-in / Phone / Online / Referral",
+                                controller: _sourceCtrl,
                               ),
                               const SizedBox(height: 16),
                               Column(
@@ -861,9 +928,10 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                                         color: Colors.grey.shade200,
                                       ),
                                     ),
-                                    child: const TextField(
+                                    child: TextField(
+                                      controller: _noteCtrl,
                                       maxLines: 4,
-                                      decoration: InputDecoration(
+                                      decoration: const InputDecoration(
                                         hintText:
                                             "Any additional notes about the inquiry...",
                                         hintStyle: TextStyle(
@@ -895,8 +963,7 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                                   ],
                                 ),
                                 child: ElevatedButton.icon(
-                                  onPressed: () =>
-                                      setState(() => _showAddSheet = false),
+                                  onPressed: _saveInquiry,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.transparent,
                                     shadowColor: Colors.transparent,
@@ -938,7 +1005,12 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
     );
   }
 
-  Widget _sheetField(String label, IconData icon, {String? hint}) {
+  Widget _sheetField(
+    String label,
+    IconData icon, {
+    String? hint,
+    TextEditingController? controller,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -958,6 +1030,7 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: TextField(
+            controller: controller,
             decoration: InputDecoration(
               hintText: hint ?? "Enter $label",
               hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),

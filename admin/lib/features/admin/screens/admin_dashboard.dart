@@ -479,6 +479,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         chartPoints: const [
           Offset(0, 0.4), Offset(1, 0.5), Offset(2, 0.3), Offset(3, 0.6), Offset(4, 0.5), Offset(5, 0.9),
         ],
+        selectedTimeline: "All",
+        onTimelineChanged: (_) {},
       ),
       PremiumStatsCard(
         title: "Faculty",
@@ -491,6 +493,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         chartPoints: const [
           Offset(0, 0.3), Offset(1, 0.4), Offset(2, 0.45), Offset(3, 0.42), Offset(4, 0.5), Offset(5, 0.55),
         ],
+        selectedTimeline: "All",
+        onTimelineChanged: (_) {},
       ),
       PremiumStatsCard(
         title: "Revenue",
@@ -503,6 +507,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         chartPoints: const [
           Offset(0, 0.2), Offset(1, 0.4), Offset(2, 0.3), Offset(3, 0.5), Offset(4, 0.4), Offset(5, 0.8),
         ],
+        selectedTimeline: "All",
+        onTimelineChanged: (_) {},
       ),
       PremiumStatsCard(
         title: "Inventory",
@@ -515,6 +521,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         chartPoints: const [
           Offset(0, 0.5), Offset(1, 0.5), Offset(2, 0.55), Offset(3, 0.5), Offset(4, 0.52), Offset(5, 0.5),
         ],
+        selectedTimeline: "All",
+        onTimelineChanged: (_) {},
       ),
     ];
 
@@ -656,7 +664,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
           const SizedBox(height: 20),
           SizedBox(
-            height: 280, // Increased height for mobile carousel
+            height: 320, // Increased height to prevent bottom overflow
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
@@ -698,7 +706,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             crossAxisCount: 2,
             mainAxisSpacing: 20,
             crossAxisSpacing: 20,
-            childAspectRatio: 1.15,
+            childAspectRatio: 0.84, // Fine-tuned to resolve overflow precisely
           ),
           itemCount: attendanceData.length,
           itemBuilder: (context, index) {
@@ -746,6 +754,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           Text(
             title,
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 16),
           // Sub-box like image
@@ -764,8 +774,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   child: Icon(Icons.check_circle_rounded, color: color, size: 20),
                 ),
                 const SizedBox(width: 12),
-                Text(subTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF64748B))),
-                const Spacer(),
+                Expanded(
+                  child: Text(
+                    subTitle,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF64748B)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Text(value, style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 13)),
                 const SizedBox(width: 8),
                 const Icon(Icons.auto_awesome_motion_rounded, size: 16, color: Color(0xFF94A3B8)),
@@ -832,6 +848,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                               color: isActive ? color : const Color(0xFF94A3B8),
                             ),
                             textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -854,7 +872,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
               children: [
                 Icon(Icons.add_rounded, size: 14, color: color),
                 const SizedBox(width: 8),
-                Text(tip, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+                Flexible(
+                  child: Text(
+                    tip,
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
           ),
@@ -901,7 +925,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
           const SizedBox(height: 20),
           SizedBox(
-            height: 280, // Increased height for mobile carousel
+            height: 320, // Increased height to prevent bottom overflow
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
@@ -943,7 +967,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             crossAxisCount: 2,
             mainAxisSpacing: 20,
             crossAxisSpacing: 20,
-            childAspectRatio: 1.15,
+            childAspectRatio: 0.84, // Fine-tuned to resolve overflow precisely
           ),
           itemCount: performanceData.length,
           itemBuilder: (context, index) {

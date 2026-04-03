@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../../core/services/shelf_service.dart';
 import 'create_shelf_screen.dart';
 import 'add_books_to_shelf_dialog.dart';
+import 'shelf_books_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -11,40 +13,28 @@ class InventoryScreen extends StatefulWidget {
 }
 
 class _InventoryScreenState extends State<InventoryScreen> {
-  final List<Map<String, dynamic>> _shelves = [
-    {
-      "name": "Shelf A1",
-      "category": "Computer Science",
-      "capacity": 200,
-      "current": 145,
-      "aisle": "A",
-      "status": "Active",
-    },
-    {
-      "name": "Shelf B2",
-      "category": "Mathematics",
-      "capacity": 150,
-      "current": 140,
-      "aisle": "B",
-      "status": "Warning (Near Full)",
-    },
-    {
-      "name": "Shelf C4",
-      "category": "Literature",
-      "capacity": 300,
-      "current": 80,
-      "aisle": "C",
-      "status": "Active",
-    },
-    {
-      "name": "Shelf D1",
-      "category": "History",
-      "capacity": 100,
-      "current": 100,
-      "aisle": "D",
-      "status": "Full",
-    },
-  ];
+  List<dynamic> _shelves = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadShelves();
+  }
+
+  Future<void> _loadShelves() async {
+    try {
+      setState(() => _isLoading = true);
+      final data = await ShelfService.getAllShelves();
+      setState(() {
+        _shelves = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Error loading shelves: $e");
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +49,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
           children: [
             _buildHeader(isMobile),
             const SizedBox(height: 32),
-            _buildShelvesList(isMobile),
+            _isLoading 
+              ? const Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator()))
+              : _buildShelvesList(isMobile),
           ],
         ),
       ),
@@ -99,8 +91,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
               boxShadow: [BoxShadow(color: const Color(0xFF4F46E5).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
             ),
             child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateShelfScreen()));
+              onPressed: () async {
+                final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateShelfScreen()));
+                if (res == true) _loadShelves();
               },
               icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
               label: const Text("Create New Shelf", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
@@ -131,8 +124,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 boxShadow: [BoxShadow(color: const Color(0xFF4F46E5).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
               ),
               child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateShelfScreen()));
+                onPressed: () async {
+                  final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateShelfScreen()));
+                  if (res == true) _loadShelves();
                 },
                 icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
                 label: const Text("Create New Shelf", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
@@ -157,7 +151,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
           itemCount: _shelves.length,
           itemBuilder: (context, index) {
             final s = _shelves[index];
-            double fillRatio = s['current'] / s['capacity'];
+            double capacityNum = double.tryParse(s['capacity'].toString()) ?? 100;
+            double currentNum = double.tryParse(s['current'].toString()) ?? 0;
+            double fillRatio = currentNum / capacityNum;
             Color fillCol = fillRatio > 0.9 ? Colors.red : (fillRatio > 0.7 ? Colors.orange : Colors.green);
 
             return Container(
@@ -196,11 +192,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       Row(
                         children: [
                           TextButton.icon(
-                            onPressed: () {
-                              showDialog(
+                            onPressed: () async {
+                              final res = await showDialog<bool>(
                                 context: context,
                                 builder: (_) => AddBooksToShelfDialog(shelfName: s['name']),
                               );
+                              if (res == true) _loadShelves();
                             },
                             icon: const Icon(Icons.add_rounded, size: 16),
                             label: const Text("Add Books", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
@@ -212,7 +209,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert_rounded, color: Colors.grey), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
+                          IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => ShelfBooksScreen(shelfName: s['name'])),
+                              );
+                            }, 
+                            icon: const Icon(Icons.visibility_outlined, color: Color(0xFF4F46E5), size: 20), 
+                            tooltip: "View Books", 
+                            splashRadius: 20, 
+                            constraints: const BoxConstraints(), 
+                            padding: const EdgeInsets.all(8)
+                          ),
                         ],
                       ),
                     ],
