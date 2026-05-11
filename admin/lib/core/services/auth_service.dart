@@ -5,7 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  static String get baseUrl => '${dotenv.get('BACKEND_URL', fallback: 'http://localhost:5000/api')}/auth';
+  static String get baseUrl => '${dotenv.get('BACKEND_URL', fallback: 'https://mayaerpbackend.onrender.com/api')}/auth';
 
   static Future<Map<String, dynamic>?> login(String email, String password, String role) async {
     try {
@@ -24,6 +24,7 @@ class AuthService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', data['token']);
         await prefs.setString('role', data['role']);
+        await prefs.setString('user_id', data['_id']);
         final userName = '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}'.trim();
         await prefs.setString('user_name', userName.isNotEmpty ? userName : 'User');
         await prefs.setString('user_email', data['email']);

@@ -76,73 +76,35 @@ class AdminSidebar extends StatelessWidget {
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
+              physics: const BouncingScrollPhysics(),
               children: [
                 _sectionLabel("MAIN MENU"),
                 const SizedBox(height: 8),
                 _sidebarItem(context, Icons.dashboard_rounded, "Dashboard", 0),
-                _sidebarItem(
-                  context,
-                  Icons.person_add_rounded,
-                  "Admissions",
-                  1,
-                ),
+                _sidebarItem(context, Icons.person_add_rounded, "Admissions", 1),
+                
                 const SizedBox(height: 16),
-                _sectionLabel("MANAGEMENT"),
+                _sectionLabel("ACADEMICS"),
                 const SizedBox(height: 8),
-                _sidebarItem(
-                  context,
-                  Icons.account_tree_rounded,
-                  "Course Management",
-                  2,
-                ),
-                _sidebarItem(
-                  context,
-                  Icons.account_balance_wallet_rounded,
-                  "Finance & Fees",
-                  3,
-                ),
-                _sidebarItem(
-                  context,
-                  Icons.manage_accounts_rounded,
-                  "User Management",
-                  4,
-                ),
-                _sidebarItem(
-                  context,
-                  Icons.school_rounded,
-                  "Student Management",
-                  5,
-                ),
-                _sidebarItem(
-                  context,
-                  Icons.calendar_today_rounded,
-                  "Attendance & Exams",
-                  6,
-                ),
-                _sidebarItem(
-                  context,
-                  Icons.local_library_rounded,
-                  "Library Control",
-                  7,
-                ),
-                _sidebarItem(
-                  context,
-                  Icons.bar_chart_rounded,
-                  "Reports & Logs",
-                  8,
-                ),
-                _sidebarItem(
-                  context,
-                  Icons.record_voice_over_rounded,
-                  "Inquiries",
-                  9,
-                ),
-                _sidebarItem(
-                  context,
-                  Icons.directions_bus_rounded,
-                  "Transport Hub",
-                  10,
-                ),
+                _sidebarItem(context, Icons.account_tree_rounded, "Courses", 2),
+                _sidebarItem(context, Icons.schedule_rounded, "Time Table", 11),
+                _sidebarItem(context, Icons.how_to_reg_rounded, "Attendance", 12),
+                _sidebarItem(context, Icons.assignment_rounded, "Exams", 6),
+
+                const SizedBox(height: 16),
+                _sectionLabel("ADMINISTRATION"),
+                const SizedBox(height: 8),
+                _sidebarItem(context, Icons.account_balance_wallet_rounded, "Finance & Fees", 3),
+                _sidebarItem(context, Icons.manage_accounts_rounded, "User Management", 4),
+                _sidebarItem(context, Icons.school_rounded, "Student Records", 5),
+                _sidebarItem(context, Icons.local_library_rounded, "Library Control", 7),
+                
+                const SizedBox(height: 16),
+                _sectionLabel("SUPPORT & LOGS"),
+                const SizedBox(height: 8),
+                _sidebarItem(context, Icons.record_voice_over_rounded, "Inquiries", 9),
+                _sidebarItem(context, Icons.directions_bus_rounded, "Transport Hub", 10),
+                _sidebarItem(context, Icons.bar_chart_rounded, "Reports & Logs", 8),
               ],
             ),
           ),
@@ -172,14 +134,14 @@ class AdminSidebar extends StatelessWidget {
 
   Widget _sectionLabel(String label) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Text(
         label,
         style: const TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w900,
           color: Colors.grey,
-          letterSpacing: 2,
+          letterSpacing: 1.5,
         ),
       ),
     );
@@ -229,21 +191,24 @@ class AdminSidebar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: isSelected
-                        ? AppColors.primaryRed
-                        : (color ?? AppColors.textMain),
-                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                    fontSize: 14,
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isSelected
+                          ? AppColors.primaryRed
+                          : (color ?? AppColors.textMain),
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
                 if (isSelected) ...[
-                  const Spacer(),
                   Container(
-                    width: 6,
-                    height: 6,
+                    width: 4,
+                    height: 4,
                     decoration: BoxDecoration(
                       color: AppColors.primaryRed,
                       shape: BoxShape.circle,

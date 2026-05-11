@@ -36,7 +36,7 @@ export const createStudent = async (req, res) => {
         }
 
         // Ensure password (default to DOB if missing)
-        if (!studentData.password) {
+        if (!studentData.password || studentData.password.toString().trim() === "") {
             studentData.password = studentData.dob;
         }
 
@@ -80,7 +80,10 @@ export const createStudent = async (req, res) => {
 
 export const getAllStudents = async (req, res) => {
     try {
-        const students = await Student.find().sort({ createdAt: -1 });
+        const students = await Student.find()
+            .populate('selectedBranch', 'name')
+            .populate('selectedProgram', 'name')
+            .sort({ createdAt: -1 });
         res.status(200).json(students);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching students', error: error.message });
@@ -89,7 +92,9 @@ export const getAllStudents = async (req, res) => {
 
 export const getStudentById = async (req, res) => {
     try {
-        const student = await Student.findById(req.params.id);
+        const student = await Student.findById(req.params.id)
+            .populate('selectedBranch', 'name')
+            .populate('selectedProgram', 'name');
         if (!student) {
             return res.status(404).json({ message: 'Student not found' });
         }
@@ -176,6 +181,11 @@ export const updateStudent = async (req, res) => {
         // Default password to DOB if missing (for legacy records)
         if (!student.password && !updateData.password) {
             updateData.password = updateData.dob || student.dob;
+        }
+
+        // Remove empty password to avoid overwriting existing one with an empty string
+        if (updateData.password !== undefined && (!updateData.password || updateData.password.trim() === "")) {
+            delete updateData.password;
         }
 
         // Apply updates (excluding immutable fields)

@@ -49,4 +49,14 @@ class UserService {
       throw Exception(error['message'] ?? 'Failed to delete user');
     }
   }
+
+  static Future<Map<String, dynamic>> getUserById(String id) async {
+    final response = await http.get(Uri.parse('$baseUrl/$id'));
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      final error = json.decode(response.body);
+      throw Exception(error['message'] ?? 'Failed to fetch user profile');
+    }
+  }
 }

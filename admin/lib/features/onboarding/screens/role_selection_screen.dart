@@ -31,6 +31,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       "icon": Icons.local_library_rounded,
       "color": Colors.amber,
     },
+    {
+      "title": "Lab",
+      "icon": Icons.biotech_rounded,
+      "color": Colors.deepPurple,
+    },
   ];
 
   @override

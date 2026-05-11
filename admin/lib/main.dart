@@ -12,23 +12,29 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: "assets/.env");
 
-  final String? role = await AuthService.getUserRole();
+  final String? rawRole = await AuthService.getUserRole();
+  final String role = (rawRole ?? '').trim().toUpperCase();
   Widget initialHome;
 
-  if (role == null) {
+  if (rawRole == null) {
     initialHome = const ShowcaseScreen();
   } else {
     switch (role) {
-      case 'Admin':
+      case 'ADMIN':
         initialHome = const AdminShell();
         break;
-      case 'Staff':
+      case 'STAFF':
+      case 'FACULTY':
+      case 'HOD':
+      case 'PRINCIPAL':
         initialHome = const StaffShell();
         break;
-      case 'Library':
+      case 'LIBRARIAN':
+      case 'LIBRARY':
         initialHome = const LibraryShell();
         break;
-      case 'Office':
+      case 'OFFICE':
+      case 'ACCOUNTANT':
         initialHome = const Scaffold(body: Center(child: Text("Office Panel")));
         break;
       default:

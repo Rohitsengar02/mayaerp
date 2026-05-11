@@ -36,8 +36,10 @@ const studentSchema = new mongoose.Schema({
     entranceScore: { type: String },
 
     // Program Selection
-    selectedBranch: { type: String },
-    selectedProgram: { type: String, required: true },
+    selectedBranch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch' },
+    selectedProgram: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
+    selectedSemester: { type: Number, default: 1 },
+    selectedSection: { type: String, default: 'Section A' },
     sessionYear: { type: String, required: true },
     category: { type: String, required: true },
     statementOfPurpose: { type: String },

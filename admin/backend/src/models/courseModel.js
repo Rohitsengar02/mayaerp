@@ -42,12 +42,27 @@ const courseSchema = new mongoose.Schema({
         semester: Number,
         credits: Number,
         description: String,
-        subjects: [{
-            name: String,
-            code: String,
-            credits: Number,
-            type: { type: String, default: 'Core' }
+        sections: [{
+            name: { type: String, default: 'Section A' },
+            subjects: [{
+                name: String,
+                code: String,
+                credits: Number,
+                type: { type: String, default: 'Core' },
+                facultyId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User'
+                }
+            }]
         }]
+    }],
+    totalSemesters: {
+        type: Number,
+        default: 8
+    },
+    semesterFees: [{
+        semester: Number,
+        fee: Number
     }]
 }, { timestamps: true });
 

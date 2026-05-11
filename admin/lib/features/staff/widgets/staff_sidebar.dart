@@ -1,28 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../onboarding/screens/showcase_screen.dart';
 import '../../../core/services/auth_service.dart';
 
-class StaffSidebar extends StatelessWidget {
+class StaffSidebar extends StatefulWidget {
   final int selectedIndex;
   final Function(int) onItemSelected;
 
-  StaffSidebar({
+  const StaffSidebar({
     super.key,
     required this.selectedIndex,
     required this.onItemSelected,
   });
 
+  @override
+  State<StaffSidebar> createState() => _StaffSidebarState();
+}
+
+class _StaffSidebarState extends State<StaffSidebar> {
+  String _userName = "Loading...";
+  String _userRole = "Staff Portal";
+
   final List<Map<String, dynamic>> _menuItems = [
     {"icon": Icons.dashboard_rounded, "label": "Dashboard"},
     {"icon": Icons.people_alt_rounded, "label": "Students"},
     {"icon": Icons.how_to_reg_rounded, "label": "Attendance"},
-    {"icon": Icons.assignment_rounded, "label": "Exams"},
     {"icon": Icons.schedule_rounded, "label": "Time Table"},
     {"icon": Icons.campaign_rounded, "label": "Notices"},
     {"icon": Icons.event_busy_rounded, "label": "Leave Requests"},
-    {"icon": Icons.bar_chart_rounded, "label": "Reports"},
     {"icon": Icons.person_rounded, "label": "Profile"},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+
+  Future<void> _loadUserInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userName = prefs.getString('user_name') ?? "Professor";
+      _userRole = prefs.getString('role') ?? "Faculty Member";
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +121,7 @@ class StaffSidebar extends StatelessWidget {
               itemCount: _menuItems.length,
               itemBuilder: (context, index) {
                 final item = _menuItems[index];
-                final isSelected = selectedIndex == index;
+                final isSelected = widget.selectedIndex == index;
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -113,7 +134,7 @@ class StaffSidebar extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: ListTile(
-                      onTap: () => onItemSelected(index),
+                      onTap: () => widget.onItemSelected(index),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -153,25 +174,33 @@ class StaffSidebar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 20,
-                  backgroundImage:
-                      NetworkImage('https://i.pravatar.cc/150?img=41'),
+                  backgroundColor: const Color(0xFF10B981).withOpacity(0.1),
+                  child: Text(
+                    _userName.isNotEmpty ? _userName[0].toUpperCase() : "S",
+                    style: const TextStyle(
+                      color: Color(0xFF10B981),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Dr. Sarah",
-                        style: TextStyle(
+                      Text(
+                        _userName,
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
+                          color: Color(0xFF1E293B),
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        "Computer Science",
+                        _userRole,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 11,
@@ -184,17 +213,33 @@ class StaffSidebar extends StatelessWidget {
                 ),
                 IconButton(
                   onPressed: () async {
-                    await AuthService.logout();
-                    if (context.mounted) {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const ShowcaseScreen()),
-                        (route) => false,
-                      );
+                    bool? confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text("Logout"),
+                        content: const Text("Are you sure you want to exit?"),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+                          TextButton(onPressed: () => Navigator.pop(ctx, true), style: TextButton.styleFrom(foregroundColor: Colors.red), child: const Text("Logout")),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true) {
+                      await AuthService.logout();
+                      if (context.mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const ShowcaseScreen()),
+                          (route) => false,
+                        );
+                      }
                     }
                   },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                   icon: Icon(
                     Icons.logout_rounded,
-                    size: 20,
+                    size: 18,
                     color: Colors.grey.shade400,
                   ),
                 ),

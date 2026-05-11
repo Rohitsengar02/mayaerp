@@ -80,11 +80,15 @@ export const studentLogin = async (req, res) => {
 
             res.json({
                 ...studentData,
-                selectedBranch: branchName,
-                selectedProgram: courseName,
+                selectedBranch: studentData.selectedBranch, // Keep original ID
+                selectedProgram: studentData.selectedProgram, // Keep original ID
+                selectedBranchName: branchName,
+                selectedProgramName: courseName,
+                branchName: branchName, // Fallback
+                courseName: courseName, // Fallback
                 role: 'student',
                 token: generateToken(student._id),
-                profilePhoto: student.applicantPhoto
+                profilePhoto: studentData.applicantPhoto
             });
         } else {
             console.log('Password mismatch for:', loginId);

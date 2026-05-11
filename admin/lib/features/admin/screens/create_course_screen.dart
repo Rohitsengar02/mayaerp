@@ -4,8 +4,9 @@ import '../../../core/services/course_service.dart';
 
 class CreateCourseScreen extends StatefulWidget {
   final Map<String, dynamic> branch;
+  final Map<String, dynamic>? course;
 
-  const CreateCourseScreen({super.key, required this.branch});
+  const CreateCourseScreen({super.key, required this.branch, this.course});
 
   @override
   State<CreateCourseScreen> createState() => _CreateCourseScreenState();
@@ -14,14 +15,28 @@ class CreateCourseScreen extends StatefulWidget {
 class _CreateCourseScreenState extends State<CreateCourseScreen> {
   final _formKey = GlobalKey<FormState>();
   
-  final _codeCtrl = TextEditingController();
-  final _nameCtrl = TextEditingController();
-  final _durationCtrl = TextEditingController();
-  final _intakeCtrl = TextEditingController();
-  final _coordinatorCtrl = TextEditingController();
-  final _tuitionCtrl = TextEditingController();
-  final _labCtrl = TextEditingController();
+  late final TextEditingController _codeCtrl;
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _durationCtrl;
+  late final TextEditingController _intakeCtrl;
+  late final TextEditingController _coordinatorCtrl;
+  late final TextEditingController _tuitionCtrl;
+  late final TextEditingController _labCtrl;
+  late final TextEditingController _semesterCountCtrl;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _codeCtrl = TextEditingController(text: widget.course?['code'] ?? '');
+    _nameCtrl = TextEditingController(text: widget.course?['name'] ?? '');
+    _durationCtrl = TextEditingController(text: widget.course?['duration']?.toString() ?? '');
+    _intakeCtrl = TextEditingController(text: widget.course?['intakeCapacity']?.toString() ?? '');
+    _coordinatorCtrl = TextEditingController(text: widget.course?['coordinator'] ?? '');
+    _tuitionCtrl = TextEditingController(text: widget.course?['tuitionFee']?.toString() ?? '');
+    _labCtrl = TextEditingController(text: widget.course?['labIndex']?.toString() ?? '');
+    _semesterCountCtrl = TextEditingController(text: widget.course?['totalSemesters']?.toString() ?? '8');
+  }
 
   @override
   void dispose() {
@@ -32,6 +47,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     _coordinatorCtrl.dispose();
     _tuitionCtrl.dispose();
     _labCtrl.dispose();
+    _semesterCountCtrl.dispose();
     super.dispose();
   }
 
@@ -40,21 +56,45 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     
     setState(() => _isSaving = true);
     try {
-      await CourseService.createCourse({
+      final totalTuition = double.tryParse(_tuitionCtrl.text) ?? 0.0;
+      final totalSems = int.tryParse(_semesterCountCtrl.text) ?? 8;
+      final feePerSem = totalTuition / (totalSems > 0 ? totalSems : 1);
+
+      final semesterFees = <Map<String, dynamic>>[];
+      for (int i = 0; i < totalSems; i++) {
+        semesterFees.add({
+          'semester': i + 1,
+          'fee': feePerSem,
+        });
+      }
+
+      final data = {
         'branchId': widget.branch['_id'],
         'code': _codeCtrl.text,
         'name': _nameCtrl.text,
         'duration': int.tryParse(_durationCtrl.text) ?? 4,
         'intakeCapacity': int.tryParse(_intakeCtrl.text) ?? 60,
         'coordinator': _coordinatorCtrl.text,
-        'tuitionFee': int.tryParse(_tuitionCtrl.text) ?? 0,
+        'tuitionFee': totalTuition.toInt(),
         'labIndex': _labCtrl.text,
-      });
+        'totalSemesters': totalSems,
+        'semesterFees': semesterFees,
+      };
+
+      if (widget.course != null) {
+        await CourseService.updateCourse(widget.course!['_id'], data);
+      } else {
+        await CourseService.createCourse(data);
+      }
+
       if (mounted) {
         setState(() => _isSaving = false);
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Course created successfully'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(widget.course != null ? 'Audit Successful: Course Curricular Updated' : 'Deployment Complete: Course Node Active'), 
+            backgroundColor: Colors.green
+          ),
         );
       }
     } catch (e) {
@@ -83,8 +123,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                 Container(
                   width: 450,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [const Color(0xFFF8F6F6), Colors.white],
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFF8F6F6), Colors.white],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -113,9 +153,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                           ),
                         ),
                         const SizedBox(height: 40),
-                        const Text(
-                          "DEPLOY NEW\nCOURSE SCHEME",
-                          style: TextStyle(
+                        Text(
+                          widget.course != null ? "RESTRICT\nAUDIT" : "DEPLOY NEW\nCOURSE SCHEME",
+                          style: const TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -1,
@@ -124,7 +164,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          "Provision a new degree or diploma course under ${widget.branch['name']}. This will enable student enrollment and syllabus mapping.",
+                          widget.course != null 
+                            ? "Audit and refine curricular and financial coordinates for ${widget.course!['name']}."
+                            : "Initialize a new course under ${widget.branch['name']}. This will enable student discovery and automated billing.",
                           style: const TextStyle(
                             color: Colors.grey,
                             fontSize: 15,
@@ -134,18 +176,18 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                         const SizedBox(height: 60),
                         _guideStep(
                           "01",
-                          "Course Metadata",
-                          "Unique identification and duration parameters.",
+                          "Academic ID",
+                          "Provision unique identification parameters.",
                         ),
                         _guideStep(
                           "02",
-                          "Curriculum Setup",
-                          "Define semester structure and initial credit systems.",
+                          "Billing Cycle",
+                          "Determine total semesters for installment splitting.",
                         ),
                         _guideStep(
                           "03",
-                          "Resource Allocation",
-                          "Assign classrooms and primary faculty nodes.",
+                          "Nodes & Coordination",
+                          "Assign institutional faculty waypoints.",
                         ),
                       ],
                     ),
@@ -171,7 +213,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                           ),
                           const SizedBox(height: 24),
                           Text(
-                            "New Course: ${widget.branch['name']}",
+                            widget.course != null ? "Edit Course: ${widget.course!['code']}" : "New Course: ${widget.branch['name']}",
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w900,
@@ -180,7 +222,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                           const SizedBox(height: 32),
                         ],
                         const Text(
-                          "Section 1: Curricular Definition",
+                          "Section 1: General Curricular Parameters",
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w900,
@@ -198,26 +240,51 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                           _textField("Duration (Years)", Icons.timer_outlined, _durationCtrl),
                           _textField("Intake Capacity", Icons.groups_rounded, _intakeCtrl),
                         ]).animate(delay: 400.ms).fadeIn().slideY(begin: 0.1),
+                        
                         SizedBox(height: isMobile ? 48 : 60),
+                        
                         const Text(
-                          "Section 2: Accreditation & Nodes",
+                          "Section 2: Automated Billing Lifecycle",
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w900,
                             color: Colors.grey,
                             letterSpacing: 1,
                           ),
-                        ).animate().fadeIn(delay: 500.ms),
-                        const SizedBox(height: 32),
-                        _textField("Primary Course Coordinator", Icons.person_pin_rounded, _coordinatorCtrl)
-                            .animate(delay: 600.ms)
-                            .fadeIn(),
+                        ).animate().fadeIn(delay: 450.ms),
                         const SizedBox(height: 32),
                         _row(isMobile, [
-                          _textField("Tuition Node (Fee Per SEM)", Icons.account_balance_wallet_rounded, _tuitionCtrl),
-                          _textField("Lab Allocation Index", Icons.biotech_rounded, _labCtrl),
-                        ]).animate(delay: 700.ms).fadeIn().slideY(begin: 0.1),
+                          _textField("Total Semesters (Installments)", Icons.numbers_rounded, _semesterCountCtrl),
+                          _textField("Total Program Fee (Total Tuition)", Icons.payments_rounded, _tuitionCtrl),
+                        ]).animate(delay: 500.ms).fadeIn().slideY(begin: 0.1),
+                        const SizedBox(height: 12),
+                        const Text(
+                          "* Fees will be equally distributed among the total number of semesters.",
+                          style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+                        ).animate(delay: 600.ms).fadeIn(),
+
+                        SizedBox(height: isMobile ? 48 : 60),
+
+                        const Text(
+                          "Section 3: Accreditation & Node Coordination",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.grey,
+                            letterSpacing: 1,
+                          ),
+                        ).animate().fadeIn(delay: 650.ms),
+                        const SizedBox(height: 32),
+                        _textField("Primary Course Coordinator", Icons.person_pin_rounded, _coordinatorCtrl)
+                            .animate(delay: 700.ms)
+                            .fadeIn(),
+                        const SizedBox(height: 32),
+                        _textField("Lab Allocation Index", Icons.biotech_rounded, _labCtrl)
+                            .animate(delay: 750.ms)
+                            .fadeIn(),
+                        
                         SizedBox(height: isMobile ? 60 : 100),
+                        
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -232,9 +299,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                             ),
                             child: _isSaving
                                 ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text(
-                                    "ACTIVATE COURSE",
-                                    style: TextStyle(
+                                : Text(
+                                    widget.course != null ? "UPDATE CURRICULUM" : "ACTIVATE COURSE",
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: 2,
                                     ),

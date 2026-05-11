@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../admin/screens/admin_shell.dart';
 import '../../library/screens/library_shell.dart';
 import '../../staff/screens/staff_shell.dart';
+import '../../lab/screens/lab_shell.dart';
 import '../../../core/services/auth_service.dart';
 
 class LoginRoleScreen extends StatefulWidget {
@@ -59,6 +60,8 @@ class _LoginRoleScreenState extends State<LoginRoleScreen> {
               } else if (widget.role == 'Office') {
                  // Placeholder for Office Shell
                  return const Scaffold(body: Center(child: Text("Office Panel Loaded")));
+              } else if (widget.role == 'Lab') {
+                 return const LabShell();
               }
               return const AdminShell();
             },

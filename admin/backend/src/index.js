@@ -18,6 +18,15 @@ import bookRoutes from './routes/bookRoutes.js';
 import issueBookRoutes from './routes/issueBookRoutes.js';
 import shelfRoutes from './routes/shelfRoutes.js';
 import librarySettingsRoutes from './routes/librarySettingsRoutes.js';
+import leaveRoutes from './routes/leaveRoutes.js';
+import noticeRoutes from './routes/noticeRoutes.js';
+import transportRoutes from './routes/transportRoutes.js';
+import feeRoutes from './routes/feeRoutes.js';
+import labRoutes from './routes/labRoutes.js';
+import labInventoryRoutes from './routes/inventoryRoutes.js';
+import labIssueRoutes from './routes/labIssueRoutes.js';
+import subjectLabMappingRoutes from './routes/subjectLabMappingRoutes.js';
+import labReportsRoutes from './routes/labReportsRoutes.js';
 
 import http from 'http';
 import { Server } from 'socket.io';
@@ -39,6 +48,10 @@ const io = new Server(httpServer, {
 
 // Make io accessible globally
 app.set('io', io);
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
 
 const PORT = process.env.PORT || 5000;
 
@@ -76,6 +89,15 @@ app.use('/api/books', bookRoutes);
 app.use('/api/library', issueBookRoutes);
 app.use('/api/shelves', shelfRoutes);
 app.use('/api/library-settings', librarySettingsRoutes);
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/notices', noticeRoutes);
+app.use('/api/transport', transportRoutes);
+app.use('/api/fees', feeRoutes);
+app.use('/api/labs', labRoutes);
+app.use('/api/lab-inventory', labInventoryRoutes);
+app.use('/api/lab-issues', labIssueRoutes);
+app.use('/api/lab-mappings', subjectLabMappingRoutes);
+app.use('/api/lab-reports', labReportsRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {

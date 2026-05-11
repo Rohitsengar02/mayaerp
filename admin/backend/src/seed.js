@@ -5,13 +5,15 @@ import dns from 'dns';
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 import bcrypt from 'bcryptjs';
-import { Admin, OfficeStaff, Staff, Librarian } from './models/userModels.js';
+import { Admin, OfficeStaff, Staff, Librarian, LabAdmin } from './models/userModels.js';
 
 dotenv.config();
 
 const hashPassword = async (password) => {
     return await bcrypt.hash(password, 10);
 };
+
+import { User } from './models/userModels.js';
 
 const seedDatabase = async () => {
     try {
@@ -23,6 +25,7 @@ const seedDatabase = async () => {
         await OfficeStaff.deleteMany({});
         await Staff.deleteMany({});
         await Librarian.deleteMany({});
+        await LabAdmin.deleteMany({});
 
         const plainPassword = 'Password@123';
 
@@ -53,6 +56,31 @@ const seedDatabase = async () => {
             department: 'Academic'
         });
 
+        // Seed Faculty (for Lab assignment & mappings)
+        await User.create([
+            {
+                name: 'Dr. Alan Turing',
+                email: 'alan@mayaerp.com',
+                password: plainPassword,
+                role: 'Faculty',
+                department: 'Computer Science'
+            },
+            {
+                name: 'Prof. Marie Curie',
+                email: 'marie@mayaerp.com',
+                password: plainPassword,
+                role: 'Faculty',
+                department: 'Chemistry'
+            },
+            {
+                name: 'Dr. Nikola Tesla',
+                email: 'nikola@mayaerp.com',
+                password: plainPassword,
+                role: 'Faculty',
+                department: 'Physics'
+            }
+        ]);
+
         // Seed Library
         await Librarian.create({
             name: 'Chief Librarian',
@@ -60,6 +88,15 @@ const seedDatabase = async () => {
             password: plainPassword,
             role: 'Library',
             department: 'Books & Resources'
+        });
+
+        // Seed Lab
+        await LabAdmin.create({
+            name: 'Lab Coordinator',
+            email: 'lab@mayaerp.com',
+            password: plainPassword,
+            role: 'Lab',
+            department: 'Laboratories'
         });
 
         console.log(`
@@ -73,6 +110,7 @@ const seedDatabase = async () => {
     2. Office:  office@mayaerp.com
     3. Staff:   staff@mayaerp.com
     4. Library: library@mayaerp.com
+    5. Lab:     lab@mayaerp.com
     ---------------------------------------------------
     `);
 

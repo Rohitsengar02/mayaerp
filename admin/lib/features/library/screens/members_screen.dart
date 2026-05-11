@@ -77,7 +77,7 @@ class _MembersScreenState extends State<MembersScreen> {
   String _getPhotoUrl(String? path) {
     if (path == null || path.isEmpty) return "https://i.pravatar.cc/150?img=1";
     if (path.startsWith('http')) return path;
-    final baseUrl = dotenv.get('BACKEND_URL', fallback: 'http://localhost:5000/api').replaceAll('/api', '');
+    final baseUrl = dotenv.get('BACKEND_URL', fallback: 'https://mayaerpbackend.onrender.com/api').replaceAll('/api', '');
     final cleanPath = path.trim();
     return "$baseUrl/$cleanPath";
   }

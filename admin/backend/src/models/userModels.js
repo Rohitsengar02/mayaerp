@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema({
     role: { 
         type: String, 
         required: true, 
-        enum: ['Admin', 'Staff', 'Faculty', 'Accountant', 'Librarian', 'HOD', 'Principal', 'Office'] 
+        enum: ['Admin', 'Staff', 'Faculty', 'Accountant', 'Librarian', 'Library', 'HOD', 'Principal', 'Office', 'Lab'] 
     },
     department: { type: String },
     employeeId: { type: String },
@@ -46,4 +46,6 @@ export const User = mongoose.model('User', userSchema);
 export const Admin = User.discriminator('Admin', new mongoose.Schema({}));
 export const OfficeStaff = User.discriminator('Office', new mongoose.Schema({}));
 export const Staff = User.discriminator('Staff', new mongoose.Schema({}));
+export const FacultyStaff = User.discriminator('Faculty', new mongoose.Schema({}));
 export const Librarian = User.discriminator('Library', new mongoose.Schema({}));
+export const LabAdmin = User.discriminator('Lab', new mongoose.Schema({}));

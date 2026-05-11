@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/leave_service.dart';
 
 class StaffLeaveScreen extends StatefulWidget {
   const StaffLeaveScreen({super.key});
@@ -12,14 +14,79 @@ class _StaffLeaveScreenState extends State<StaffLeaveScreen> {
   String? _leaveType;
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 1));
+  final _reasonController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   final List<String> _leaveTypes = ["Casual Leave", "Sick Leave", "Earned Leave", "Maternity Leave"];
 
-  final List<Map<String, dynamic>> _leaveHistory = [
-    {"type": "Casual Leave", "dates": "12 Mar 2026 - 13 Mar 2026", "status": "Approved", "color": Colors.green},
-    {"type": "Sick Leave", "dates": "28 Feb 2026 - 02 Mar 2026", "status": "Approved", "color": Colors.green},
-    {"type": "Earned Leave", "dates": "20 Apr 2026 - 25 Apr 2026", "status": "Pending", "color": Colors.orange},
-  ];
+  List<dynamic> _leaveHistory = [];
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLeaveHistory();
+  }
+
+  Future<void> _fetchLeaveHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      if (userId != null) {
+        final history = await LeaveService.getUserLeaves(userId);
+        setState(() {
+          _leaveHistory = history;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Future<void> _submitLeave() async {
+    if (!_formKey.currentState!.validate() || _leaveType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all details')));
+      return;
+    }
+
+    try {
+      setState(() => _isSubmitting = true);
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+
+      if (userId != null) {
+        await LeaveService.applyLeave({
+          "userId": userId,
+          "leaveType": _leaveType,
+          "startDate": _startDate.toIso8601String(),
+          "endDate": _endDate.toIso8601String(),
+          "reason": _reasonController.text,
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Leave request submitted successfully')));
+          _reasonController.clear();
+          setState(() {
+            _leaveType = null;
+            _startDate = DateTime.now();
+            _endDate = DateTime.now().add(const Duration(days: 1));
+          });
+          _fetchLeaveHistory();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,26 +94,28 @@ class _StaffLeaveScreenState extends State<StaffLeaveScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(isMobile ? 16 : 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(isMobile),
-            const SizedBox(height: 32),
-            isMobile
-                ? Column(children: [_buildForm(), const SizedBox(height: 32), _buildLeaveHistory()])
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 3, child: _buildForm()),
-                      const SizedBox(width: 32),
-                      Expanded(flex: 2, child: _buildLeaveHistory()),
-                    ],
-                  ),
-          ],
-        ),
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: EdgeInsets.all(isMobile ? 16 : 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(isMobile),
+                  const SizedBox(height: 32),
+                  isMobile
+                      ? Column(children: [_buildForm(), const SizedBox(height: 32), _buildLeaveHistory()])
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 3, child: _buildForm()),
+                            const SizedBox(width: 32),
+                            Expanded(flex: 2, child: _buildLeaveHistory()),
+                          ],
+                        ),
+                ],
+              ),
+            ),
     );
   }
 
@@ -65,51 +134,58 @@ class _StaffLeaveScreenState extends State<StaffLeaveScreen> {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.shade200), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 5))]),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Apply for Leave", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF1E293B))),
-          const SizedBox(height: 24),
-          _dropdown("Leave Type", _leaveTypes, _leaveType, (v) => setState(() => _leaveType = v)),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(child: _datePickerField("Start Date", _startDate, (picked) => setState(() => _startDate = picked))),
-              const SizedBox(width: 16),
-              Expanded(child: _datePickerField("End Date", _endDate, (picked) => setState(() => _endDate = picked))),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("Reason", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
-              const SizedBox(height: 8),
-              TextFormField(
-                maxLines: 4,
-                decoration: InputDecoration(
-                  hintText: "Enter reason for leave...",
-                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF10B981))),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
-              label: const Text("Submit Leave Request", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), padding: const EdgeInsets.symmetric(vertical: 20), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Apply for Leave", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF1E293B))),
+            const SizedBox(height: 24),
+            _dropdown("Leave Type", _leaveTypes, _leaveType, (v) => setState(() => _leaveType = v)),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(child: _datePickerField("Start Date", _startDate, (picked) => setState(() => _startDate = picked))),
+                const SizedBox(width: 16),
+                Expanded(child: _datePickerField("End Date", _endDate, (picked) => setState(() => _endDate = picked))),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Reason", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _reasonController,
+                  maxLines: 4,
+                  validator: (v) => (v == null || v.isEmpty) ? "Please enter a reason" : null,
+                  decoration: InputDecoration(
+                    hintText: "Enter reason for leave...",
+                    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF10B981))),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isSubmitting ? null : _submitLeave,
+                icon: _isSubmitting
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                label: Text(_isSubmitting ? "Submitting..." : "Submit Leave Request", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), padding: const EdgeInsets.symmetric(vertical: 20), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              ),
+            ),
+          ],
+        ),
       ),
     ).animate().fadeIn(delay: 200.ms).slideY();
   }
@@ -166,6 +242,8 @@ class _StaffLeaveScreenState extends State<StaffLeaveScreen> {
   }
 
   Widget _buildLeaveHistory() {
+    int pendingCount = _leaveHistory.where((l) => l['status'] == 'Pending').length;
+
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.shade200), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 5))]),
@@ -176,43 +254,47 @@ class _StaffLeaveScreenState extends State<StaffLeaveScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text("Leave History", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF1E293B))),
-              Row(
-                children: [
-                  Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)), child: Text("1 Pending", style: TextStyle(color: Colors.orange.shade700, fontWeight: FontWeight.bold, fontSize: 12))),
-                ],
-              ),
+              if (pendingCount > 0)
+                Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)), child: Text("$pendingCount Pending", style: TextStyle(color: Colors.orange.shade700, fontWeight: FontWeight.bold, fontSize: 12))),
             ],
           ),
           const SizedBox(height: 24),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _leaveHistory.length,
-            separatorBuilder: (context, index) => const Divider(height: 32),
-            itemBuilder: (context, index) {
-              final h = _leaveHistory[index];
-              final color = h['color'] as Color;
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.beach_access_rounded, color: Colors.grey.shade600, size: 24)),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
+          _leaveHistory.isEmpty
+              ? Center(child: Padding(padding: const EdgeInsets.all(32), child: Text("No leave history found", style: TextStyle(color: Colors.grey.shade400))))
+              : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _leaveHistory.length,
+                  separatorBuilder: (context, index) => const Divider(height: 32),
+                  itemBuilder: (context, index) {
+                    final h = _leaveHistory[index];
+                    final String status = h['status'];
+                    final Color color = status == 'Approved' ? Colors.green : (status == 'Rejected' ? Colors.red : Colors.orange);
+                    final start = DateTime.parse(h['startDate']);
+                    final end = DateTime.parse(h['endDate']);
+                    final dateRange = "${start.day}/${start.month} - ${end.day}/${end.month} ${end.year}";
+
+                    return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(h['type'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E293B))),
-                        const SizedBox(height: 4),
-                        Text(h['dates'], style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
-                        const SizedBox(height: 8),
-                        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: Text(h['status'], style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11))),
+                        Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.beach_access_rounded, color: Colors.grey.shade600, size: 24)),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(h['leaveType'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E293B))),
+                              const SizedBox(height: 4),
+                              Text(dateRange, style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                              const SizedBox(height: 8),
+                              Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11))),
+                            ],
+                          ),
+                        ),
                       ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+                    );
+                  },
+                ),
         ],
       ),
     ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.1);

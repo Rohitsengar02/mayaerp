@@ -27,6 +27,8 @@ const attendanceSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Ensure unique attendance per student per date per subject
-attendanceSchema.index({ student: 1, date: 1, subject: 1 }, { unique: true });
+// We use subjectCode or subject to distinguish records
+attendanceSchema.index({ student: 1, date: 1, subject: 1, subjectCode: 1 }, { unique: true });
+attendanceSchema.index({ student: 1, date: 1 }, { unique: false }); // Remove old unique constraint if it existed
 
 export const Attendance = mongoose.model('Attendance', attendanceSchema);

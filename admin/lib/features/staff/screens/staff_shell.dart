@@ -5,11 +5,9 @@ import '../widgets/staff_bottom_bar.dart';
 import 'staff_dashboard_screen.dart';
 import 'staff_students_screen.dart';
 import 'staff_attendance_screen.dart';
-import 'staff_exams_screen.dart';
 import 'staff_time_table_screen.dart';
 import 'staff_notices_screen.dart';
 import 'staff_leave_screen.dart';
-import 'staff_reports_screen.dart';
 import 'staff_profile_screen.dart';
 import 'placeholder_screens.dart';
 
@@ -28,11 +26,9 @@ class _StaffShellState extends State<StaffShell> {
     const StaffDashboardScreen(),
     const StaffStudentsScreen(),
     const StaffAttendanceScreen(),
-    const StaffExamsScreen(),
     const StaffTimeTableScreen(),
     const StaffNoticesScreen(),
     const StaffLeaveScreen(),
-    const StaffReportsScreen(),
     const StaffProfileScreen(),
   ];
 
@@ -138,11 +134,10 @@ class _StaffShellState extends State<StaffShell> {
 
   Widget _moreMenuSlider(BuildContext context) {
     final List<Map<String, dynamic>> moreItems = [
-      {"icon": Icons.schedule_rounded, "label": "Time Table", "index": 4},
-      {"icon": Icons.campaign_rounded, "label": "Notices", "index": 5},
-      {"icon": Icons.event_busy_rounded, "label": "Leave Requests", "index": 6},
-      {"icon": Icons.bar_chart_rounded, "label": "Reports", "index": 7},
-      {"icon": Icons.person_rounded, "label": "Profile", "index": 8},
+      {"icon": Icons.schedule_rounded, "label": "Time Table", "index": 3},
+      {"icon": Icons.campaign_rounded, "label": "Notices", "index": 4},
+      {"icon": Icons.event_busy_rounded, "label": "Leave Requests", "index": 5},
+      {"icon": Icons.person_rounded, "label": "Profile", "index": 6},
     ];
 
     return Container(

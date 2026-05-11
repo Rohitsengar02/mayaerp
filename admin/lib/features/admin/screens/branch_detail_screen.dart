@@ -610,126 +610,159 @@ class _BranchDetailScreenState extends State<BranchDetailScreen> {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            Row(
+            Positioned(
+              top: 0,
+              right: 0,
+              child: IconButton(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CreateCourseScreen(
+                        branch: widget.branch,
+                        course: course,
+                      ),
+                    ),
+                  );
+                  if (result == true) {
+                    _loadCourses();
+                  }
+                },
+                icon: const Icon(Icons.edit_note_rounded, color: Colors.grey, size: 22),
+                tooltip: "Edit Course Details",
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFFF8F6F6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: isDesktop ? 64 : 56,
-                  height: isDesktop ? 64 : 56,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8F6F6),
-                    borderRadius: BorderRadius.circular(16),
-                    image: DecorationImage(
-                      image: NetworkImage(course['image'] ?? "https://api.dicebear.com/7.x/shapes/svg?seed=${course['code']}"),
-                      fit: BoxFit.cover,
+                Row(
+                  children: [
+                    Container(
+                      width: isDesktop ? 64 : 56,
+                      height: isDesktop ? 64 : 56,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8F6F6),
+                        borderRadius: BorderRadius.circular(16),
+                        image: DecorationImage(
+                          image: NetworkImage(course['image'] ?? "https://api.dicebear.com/7.x/shapes/svg?seed=${course['code']}"),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: isDesktop ? 20 : 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryRed.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              course['code'] ?? "",
+                              style: TextStyle(
+                                color: AppColors.primaryRed,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 48),
+                            child: Text(
+                              course['name'] ?? "",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: isDesktop ? 18 : 16,
+                                height: 1.2,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    _infoRow(Icons.timer_outlined, "${course['duration'] ?? 4} Years"),
+                    const SizedBox(width: 12),
+                    _infoRow(Icons.person_outline_rounded, course['coordinator'] ?? "No Coordinator"),
+                    const Spacer(),
+                    _statusBadge(course['status'] ?? "Active"),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _infoRow(Icons.payments_outlined, "₹${course['tuitionFee'] ?? 0} Total Fee"),
+                    if (course['labIndex'] != null) ...[
+                      const SizedBox(width: 12),
+                      _infoRow(Icons.biotech_outlined, "Lab: ${course['labIndex']}"),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Divider(height: 1, color: Color(0xFFF1F1F1)),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _miniDetail(
+                      Icons.groups_rounded,
+                      "Students",
+                      "${course['realStudentCount'] ?? 0}",
+                    ),
+                    _miniDetail(
+                      Icons.stars_rounded,
+                      "Intake",
+                      "${course['intakeCapacity'] ?? 60}",
+                    ),
+                    _miniDetail(
+                      Icons.school_rounded,
+                      "Fee/Sem",
+                      "₹${(course['semesterFees'] != null && (course['semesterFees'] as List).isNotEmpty) ? (course['semesterFees'] as List)[0]['fee'] : (course['tuitionFee'] ?? 0)}",
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => setState(() => _selectedCourse = course),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: const Color(0xFFF8F6F6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "View Details",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: Colors.black,
+                      ),
                     ),
                   ),
                 ),
-                SizedBox(width: isDesktop ? 20 : 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryRed.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          course['code'] ?? "",
-                          style: TextStyle(
-                            color: AppColors.primaryRed,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        course['name'] ?? "",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: isDesktop ? 18 : 16,
-                          height: 1.2,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
               ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                _infoRow(Icons.timer_outlined, "${course['duration'] ?? 4} Years"),
-                const SizedBox(width: 12),
-                _infoRow(Icons.person_outline_rounded, course['coordinator'] ?? "No Coordinator"),
-                const Spacer(),
-                _statusBadge(course['status'] ?? "Active"),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _infoRow(Icons.payments_outlined, "₹${course['tuitionFee'] ?? 0} Total Fee"),
-                if (course['labIndex'] != null) ...[
-                  const SizedBox(width: 12),
-                  _infoRow(Icons.biotech_outlined, "Lab: ${course['labIndex']}"),
-                ],
-              ],
-            ),
-            const SizedBox(height: 20),
-            const Divider(height: 1, color: Color(0xFFF1F1F1)),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _miniDetail(
-                  Icons.groups_rounded,
-                  "Students",
-                  "${course['realStudentCount'] ?? 0}",
-                ),
-                _miniDetail(
-                  Icons.stars_rounded,
-                  "Intake",
-                  "${course['intakeCapacity'] ?? 60}",
-                ),
-                _miniDetail(
-                  Icons.school_rounded,
-                  "Fee/Sem",
-                  "₹${course['tuitionFee'] ?? 0}",
-                ),
-              ],
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => setState(() => _selectedCourse = course),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: const Color(0xFFF8F6F6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  "View Details",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
             ),
           ],
         ),

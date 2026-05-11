@@ -26,6 +26,7 @@ class AttendanceService {
     required List<Map<String, dynamic>> attendanceList,
     required String department,
     required String course,
+    required String section,
     required String subject,
     required String subjectCode,
   }) async {
@@ -37,6 +38,7 @@ class AttendanceService {
         'attendanceList': attendanceList,
         'department': department,
         'course': course,
+        'section': section,
         'subject': subject,
         'subjectCode': subjectCode,
       }),
@@ -46,6 +48,26 @@ class AttendanceService {
       final error = json.decode(response.body);
       throw Exception(error['message'] ?? 'Failed to submit attendance');
     }
+  }
+
+  static Future<List<dynamic>> getStudentsForAttendance({
+    required String branchId,
+    required String courseId,
+    String? semester,
+    required String section,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/students').replace(queryParameters: {
+      'branchId': branchId,
+      'courseId': courseId,
+      if (semester != null) 'semester': semester,
+      'section': section,
+    });
+    
+    final response = await http.get(uri);
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    throw Exception('Failed to load students');
   }
 
   static Future<Map<String, dynamic>> getAttendanceStats() async {

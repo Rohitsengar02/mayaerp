@@ -142,6 +142,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
         attendanceList: list,
         department: _selectedDeptId!,
         course: _selectedCourseId!,
+        section: "Section A", // Defaulting to Section A for this screen or extract from student data
         subject: _selectedSubjectName!,
         subjectCode: _selectedSubjectCode!,
       );

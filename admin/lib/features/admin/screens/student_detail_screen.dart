@@ -27,6 +27,18 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
     super.dispose();
   }
 
+  String _getBranchName() {
+    final branch = widget.student['selectedBranch'];
+    if (branch is Map) return branch['name'] ?? "N/A";
+    return branch?.toString() ?? "N/A";
+  }
+
+  String _getProgramName() {
+    final prog = widget.student['selectedProgram'];
+    if (prog is Map) return prog['name'] ?? "N/A";
+    return prog?.toString() ?? "N/A";
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -95,16 +107,16 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
           _backButton(),
           const SizedBox(height: 40),
           Hero(
-            tag: 'student_avatar_${widget.student['roll']}',
+            tag: 'student_avatar_${widget.student['_id']}',
             child: Container(
               width: 120,
               height: 120,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white24, width: 4),
-                image: const DecorationImage(
+                image: DecorationImage(
                   image: NetworkImage(
-                    "https://ui-avatars.com/api/?name=Student&background=random&size=200",
+                    widget.student['applicantPhoto'] ?? "https://ui-avatars.com/api/?name=${widget.student['firstName']}+${widget.student['lastName']}&background=random&size=200",
                   ),
                   fit: BoxFit.cover,
                 ),
@@ -113,7 +125,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
           ),
           const SizedBox(height: 24),
           Text(
-            widget.student['name'],
+            "${widget.student['firstName'] ?? ''} ${widget.student['lastName'] ?? ''}",
             style: const TextStyle(
               color: Colors.white,
               fontSize: 22,
@@ -129,7 +141,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
               borderRadius: BorderRadius.circular(100),
             ),
             child: Text(
-              widget.student['roll'],
+              widget.student['admissionNumber'] ?? widget.student['studentId'] ?? 'NO ID',
               style: const TextStyle(
                 color: Colors.white54,
                 fontSize: 12,
@@ -140,7 +152,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
           const SizedBox(height: 40),
           _sidebarStat("Current CGPA", "8.92", Colors.greenAccent),
           _sidebarStat("Attendance", "94%", Colors.blueAccent),
-          _sidebarStat("Outstanding", "₹0.00", Colors.orangeAccent),
+          _sidebarStat("Section", widget.student['selectedSection'] ?? "Section A", Colors.orangeAccent),
           const Spacer(),
           _actionBtn(Icons.edit_rounded, "Edit Profile"),
           const SizedBox(height: 12),
@@ -194,7 +206,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.student['name'],
+                    "${widget.student['firstName'] ?? ''} ${widget.student['lastName'] ?? ''}",
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -202,13 +214,13 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
                     ),
                   ),
                   Text(
-                    widget.student['roll'],
+                    widget.student['admissionNumber'] ?? widget.student['studentId'] ?? 'NO ID',
                     style: const TextStyle(color: Colors.white54, fontSize: 13),
                   ),
                 ],
               ),
               const Spacer(),
-              _statusBadge(widget.student['status']),
+              _statusBadge(widget.student['studentStatus'] ?? 'Active'),
             ],
           ),
           const SizedBox(height: 24),
@@ -262,13 +274,13 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
               ),
               const SizedBox(height: 4),
               Text(
-                "Complete academic and financial history for ${widget.student['name']}",
+                "Complete academic and financial history for ${widget.student['firstName'] ?? ''}",
                 style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
               ),
             ],
           ),
           const Spacer(),
-          _statusBadge(widget.student['status']),
+          _statusBadge(widget.student['studentStatus'] ?? 'Active'),
         ],
       ),
     );
@@ -303,22 +315,25 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
       child: Column(
         children: [
           _infoGrid([
-            {"label": "FULL NAME", "value": widget.student['name']},
-            {"label": "FATHER'S NAME", "value": "Rajesh Kumar"},
-            {"label": "DATE OF BIRTH", "value": "12 Aug 2004"},
-            {"label": "GENDER", "value": "Male"},
-            {"label": "BLOOD GROUP", "value": "O+ Positive"},
-            {"label": "CATEGORY", "value": "General"},
+            {"label": "FULL NAME", "value": "${widget.student['firstName'] ?? ''} ${widget.student['lastName'] ?? ''}"},
+            {"label": "DATE OF BIRTH", "value": widget.student['dob'] ?? "N/A"},
+            {"label": "GENDER", "value": widget.student['gender'] ?? "N/A"},
+            {"label": "CATEGORY", "value": widget.student['category'] ?? "General"},
+            {"label": "ADMISSION NO", "value": widget.student['admissionNumber'] ?? "N/A"},
+            {"label": "STUDENT ID", "value": widget.student['studentId'] ?? "N/A"},
           ], isMobile),
           SizedBox(height: isMobile ? 24 : 32),
           _infoGrid([
-            {"label": "EMAIL ADDRESS", "value": "student.name@example.com"},
-            {"label": "PHONE NUMBER", "value": "+91 98765 43210"},
-            {"label": "EMERGENCY CONTACT", "value": "+91 99999 00000"},
-            {
-              "label": "ADDRESS",
-              "value": "42, Green Valley Hub, New Delhi, India",
-            },
+            {"label": "EMAIL ADDRESS", "value": widget.student['email'] ?? "N/A"},
+            {"label": "PHONE NUMBER", "value": widget.student['mobile'] ?? "N/A"},
+            {"label": "ALT NUMBER", "value": widget.student['alternateMobile'] ?? "N/A"},
+            {"label": "CITY", "value": widget.student['city'] ?? "N/A"},
+            {"label": "STATE", "value": widget.student['state'] ?? "N/A"},
+            {"label": "PIN CODE", "value": widget.student['pinCode'] ?? "N/A"},
+          ], isMobile),
+          SizedBox(height: isMobile ? 24 : 32),
+          _infoGrid([
+             {"label": "FULL ADDRESS", "value": widget.student['address'] ?? "N/A"},
           ], isMobile),
         ],
       ).animate().fadeIn().slideY(begin: 0.05),
@@ -331,22 +346,32 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _academicDetailCard("Course Details", [
-            {"label": "DEPARTMENT", "value": "School of Computing"},
-            {"label": "COURSE", "value": widget.student['course']},
-            {"label": "BATCH", "value": "2024-2028"},
-            {"label": "SECTION", "value": "A"},
+          _academicDetailCard("Current Program Details", [
+            {"label": "BRANCH", "value": _getBranchName()},
+            {"label": "COURSE", "value": _getProgramName()},
+            {"label": "SESSION", "value": widget.student['sessionYear'] ?? "N/A"},
+            {"label": "SEMESTER", "value": (widget.student['selectedSemester'] ?? 1).toString()},
+            {"label": "SECTION", "value": widget.student['selectedSection'] ?? "Section A"},
           ], isMobile),
           const SizedBox(height: 32),
-          const Text(
-            "Enrolled Subjects",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          _subjectRow("Data Structures & Algorithms", "Theory + Lab", "CS301", isMobile),
-          _subjectRow("Discrete Mathematics", "Theory", "MA202", isMobile),
-          _subjectRow("Digital Electronics", "Theory + Lab", "EC105", isMobile),
-          _subjectRow("Environmental Studies", "Audit", "ES101", isMobile),
+          _academicDetailCard("Previous Qualifications", [
+            {"label": "HIGHEST LEVEL", "value": widget.student['highestQualification'] ?? "N/A"},
+            {"label": "BOARD/UNIVERSITY", "value": widget.student['boardUniversity'] ?? "N/A"},
+            {"label": "INSTITUTION", "value": widget.student['institutionName'] ?? "N/A"},
+            {"label": "PERCENTAGE/CGPA", "value": widget.student['percentageCGPA']?.toString() ?? "N/A"},
+            {"label": "YEAR OF PASSING", "value": widget.student['yearOfPassing']?.toString() ?? "N/A"},
+          ], isMobile),
+          const SizedBox(height: 32),
+          _academicDetailCard("Subject Entrance Scores", [
+             {"label": "SUBJECT 1", "value": widget.student['subjectMarks']?['subject1'] ?? "N/A"},
+             {"label": "SUBJECT 2", "value": widget.student['subjectMarks']?['subject2'] ?? "N/A"},
+             {"label": "SUBJECT 3", "value": widget.student['subjectMarks']?['subject3'] ?? "N/A"},
+             {"label": "ENTRANCE SCORE", "value": widget.student['entranceScore'] ?? "N/A"},
+          ], isMobile),
+          const SizedBox(height: 32),
+          _academicDetailCard("Statement of Purpose", [
+             {"label": "SOP SUMMARY", "value": widget.student['statementOfPurpose'] ?? "No statement provided."},
+          ], isMobile),
         ],
       ),
     );
@@ -494,66 +519,6 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
     );
   }
 
-  Widget _subjectRow(String name, String type, String code, bool isMobile) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.book_outlined,
-              color: Colors.blue,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (isMobile)
-                  Text(
-                    type,
-                    style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
-                  ),
-              ],
-            ),
-          ),
-          if (!isMobile)
-            Text(
-              type,
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-            ),
-          const SizedBox(width: 16),
-          Text(
-            code,
-            style: const TextStyle(
-              fontWeight: FontWeight.w900,
-              color: AppColors.primaryRed,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _feeCard(String title, String amount, String status, Color color, bool isMobile) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -583,7 +548,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -650,13 +615,13 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
   );
 
   Widget _statusBadge(String status) {
-    final isRegular = status == 'Regular';
+    final isActive = status == 'Active';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isRegular
-            ? Colors.green.withOpacity(0.1)
-            : Colors.red.withOpacity(0.1),
+        color: isActive
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.red.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(100),
       ),
       child: Text(
@@ -664,7 +629,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.bold,
-          color: isRegular ? Colors.green : Colors.red,
+          color: isActive ? Colors.green : Colors.red,
         ),
       ),
     );
@@ -675,7 +640,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
       width: 200,
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white12),
       ),

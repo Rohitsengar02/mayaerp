@@ -4,11 +4,13 @@ const timetableSchema = new mongoose.Schema({
     courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
     branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', required: true },
     semester: { type: Number, required: true },
+    section: { type: String, default: 'Section A' },
     schedule: [{
         day: { type: String, enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] },
         slots: [{
             subject: String,
             facultyUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+            facultyName: String,
             startTime: String,
             endTime: String,
             location: String,

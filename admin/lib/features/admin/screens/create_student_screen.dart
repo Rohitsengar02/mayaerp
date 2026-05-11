@@ -22,6 +22,8 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
   bool _isSaving = false;
   String? _selectedBranch;
   String? _selectedProgram;
+  int _selectedSemester = 1;
+  String? _selectedSection;
   String _selectedSession = '2024-25';
   String _selectedCategory = 'General';
   String _selectedGender = 'Male';
@@ -133,8 +135,10 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
       _entranceCtrl.text = app['entranceScore'] ?? '';
       _sopCtrl.text = app['statementOfPurpose'] ?? '';
 
-      _selectedBranch = app['selectedBranch'];
-      _selectedProgram = app['selectedProgram'];
+      _selectedBranch = app['selectedBranch'] is Map ? app['selectedBranch']['_id'] : app['selectedBranch']?.toString();
+      _selectedProgram = app['selectedProgram'] is Map ? app['selectedProgram']['_id'] : app['selectedProgram']?.toString();
+      _selectedSemester = app['selectedSemester'] ?? 1;
+      _selectedSection = app['selectedSection']?.toString();
       _selectedSession = app['sessionYear'] ?? _sessions.first;
       _selectedCategory = app['category'] ?? _categories.first;
       _selectedGender = app['gender'] ?? _genders.first;
@@ -227,6 +231,8 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
 
       _selectedBranch = app['selectedBranch'];
       _selectedProgram = app['selectedProgram'];
+      _selectedSemester = app['selectedSemester'] ?? 1;
+      _selectedSection = app['selectedSection'];
       
       if (_selectedBranch != null) {
         _loadCoursesForBranch(_selectedBranch!);
@@ -941,8 +947,32 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
               _courses,
               _selectedProgram,
               _courses.isEmpty ? null : (val) {
-                setState(() => _selectedProgram = val!);
+                setState(() {
+                   _selectedProgram = val!;
+                   _selectedSection = null; // Clear section on course change
+                });
               },
+            ),
+          ]),
+        const SizedBox(height: 18),
+        if (_selectedProgram != null)
+          _row(isMobile, [
+            _dropdown(
+              "Current Semester",
+              Icons.calendar_month_rounded,
+              List.generate(8, (i) => (i + 1).toString()),
+              _selectedSemester.toString(),
+              (v) => setState(() {
+                 _selectedSemester = int.parse(v!);
+                 _selectedSection = null; // Clear section on sem change
+              }),
+            ),
+            _dynamicDropdown(
+              "Select Section",
+              Icons.grid_view_rounded,
+              _getAvailableSections(),
+              _selectedSection,
+              (val) => setState(() => _selectedSection = val!),
             ),
           ]),
         const SizedBox(height: 22),
@@ -993,9 +1023,9 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.primaryRed.withOpacity(0.05),
+        color: AppColors.primaryRed.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: AppColors.primaryRed.withOpacity(0.15)),
+        border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [
@@ -1559,6 +1589,8 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
 
         "selectedBranch": _selectedBranch,
         "selectedProgram": _selectedProgram,
+        "selectedSemester": _selectedSemester,
+        "selectedSection": _selectedSection,
         "sessionYear": _selectedSession,
         "category": _selectedCategory,
         "statementOfPurpose": _sopCtrl.text,
@@ -1600,5 +1632,20 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
         );
       }
     }
+  }
+
+  List<dynamic> _getAvailableSections() {
+    if (_selectedProgram == null) return [];
+    final course = _courses.firstWhere((c) => c['_id'] == _selectedProgram, orElse: () => null);
+    if (course == null) return [];
+    
+    final curriculum = (course['curriculum'] as List? ?? []);
+    final semData = curriculum.firstWhere((s) => s['semester'] == _selectedSemester, orElse: () => null);
+    if (semData == null) return [];
+    
+    return (semData['sections'] as List? ?? []).map((s) => {
+      '_id': s['name'], // Section identity is by name
+      'name': s['name']
+    }).toList();
   }
 }

@@ -1,14 +1,18 @@
 import express from 'express';
 import { 
-    getAttendanceByDateAndFilters, 
     submitAttendanceBulk, 
-    getAttendanceStats 
+    getAttendanceByDateAndFilters, 
+    getAttendanceStats,
+    getStudentsForAttendance,
+    getStudentAttendanceSummary
 } from '../controllers/attendanceController.js';
 
 const router = express.Router();
 
-router.get('/', getAttendanceByDateAndFilters);
 router.post('/bulk', submitAttendanceBulk);
+router.get('/filter', getAttendanceByDateAndFilters);
 router.get('/stats', getAttendanceStats);
+router.get('/students', getStudentsForAttendance);
+router.get('/student-summary', getStudentAttendanceSummary);
 
 export default router;

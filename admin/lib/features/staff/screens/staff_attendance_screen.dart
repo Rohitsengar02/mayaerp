@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:intl/intl.dart';
+import '../../../core/services/branch_service.dart';
+import '../../../core/services/course_service.dart';
+import '../../../core/services/attendance_service.dart';
 
 class StaffAttendanceScreen extends StatefulWidget {
   const StaffAttendanceScreen({super.key});
@@ -9,203 +13,302 @@ class StaffAttendanceScreen extends StatefulWidget {
 }
 
 class _StaffAttendanceScreenState extends State<StaffAttendanceScreen> {
-  String? _selectedCourse;
-  String? _selectedClass;
-  String? _selectedSubject;
+  // Lists for metadata
+  List<dynamic> _branches = [];
+  List<dynamic> _courses = [];
+  List<dynamic> _subjects = [];
+  final List<String> _sections = ["Section A", "Section B", "Section C", "Section D", "Section E"];
+  List<String> _semesters = [];
+
+  // Filter values
+  String? _selectedBranchId;
+  String? _selectedCourseId;
+  String? _selectedSemester;
+  String? _selectedSection;
+  String? _selectedSubjectCode;
+  String? _selectedSubjectName;
   DateTime _selectedDate = DateTime.now();
+
+  // State
+  List<dynamic> _students = [];
+  bool _isLoading = true;
   bool _studentsLoaded = false;
-  
-  // present, absent, leave
-  final Map<String, String> _attendanceState = {};
-
-  final List<String> _courses = ["B.Tech CS", "B.Tech IT"];
-  final List<String> _classes = ["2nd Year", "3rd Year"];
-  final List<String> _subjects = ["Data Structures", "Computer Networks", "Algorithms Lab"];
-
-  final List<Map<String, dynamic>> _dummyStudents = [
-    {"id": "CS-001", "name": "Alice Smith"},
-    {"id": "CS-002", "name": "Bob Jones"},
-    {"id": "CS-015", "name": "Charlie Brown"},
-    {"id": "CS-042", "name": "Eve Davis"},
-    {"id": "CS-055", "name": "Frank White"},
-    {"id": "CS-060", "name": "Grace Hopper"},
-  ];
+  final Map<String, String> _attendanceState = {}; // studentId -> status
 
   @override
   void initState() {
     super.initState();
-    for (var s in _dummyStudents) {
-      _attendanceState[s['id']] = 'Present'; // default
+    _loadMetadata();
+  }
+
+  Future<void> _loadMetadata() async {
+    try {
+      final br = await BranchService.getAllBranches();
+      final cr = await CourseService.getAllCourses();
+      if (mounted) {
+        setState(() {
+          _branches = br;
+          _courses = cr;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _onCourseSelected(String? val) {
+    if (val == null) return;
+    final course = _courses.firstWhere((c) => c['name'] == val);
+    final duration = course['duration'] ?? 4;
+    final totalSems = duration * 2;
+    
+    setState(() {
+      _selectedCourseId = course['_id'];
+      _semesters = List.generate(totalSems, (i) => (i + 1).toString());
+      _selectedSemester = null;
+      _subjects = [];
+      _selectedSubjectName = null;
+      _selectedSubjectCode = null;
+    });
+  }
+
+  void _onSemesterSelected(String? val) {
+    if (val == null || _selectedCourseId == null) return;
+    
+    final course = _courses.firstWhere((c) => c['_id'] == _selectedCourseId);
+    if (course != null && course['curriculum'] != null) {
+      final cur = course['curriculum'] as List;
+      final targetSem = cur.firstWhere(
+        (s) => s['semester']?.toString() == val,
+        orElse: () => null
+      );
+
+      if (targetSem != null) {
+        // Collect ALL subjects defined in this semester curriculum
+        final List<dynamic> allSemSubjects = [];
+        final secs = targetSem['sections'] as List? ?? [];
+        for (var sec in secs) {
+          if (sec['subjects'] != null) {
+            allSemSubjects.addAll(sec['subjects']);
+          }
+        }
+
+        // De-duplicate subjects
+        final Map<String, dynamic> uniqueSubs = {};
+        for (var s in allSemSubjects) {
+          if (s['name'] != null) uniqueSubs[s['name']] = s;
+        }
+
+        setState(() {
+          _selectedSemester = val;
+          _subjects = uniqueSubs.values.toList();
+          _selectedSubjectName = null;
+          _selectedSubjectCode = null;
+        });
+      } else {
+        setState(() {
+          _selectedSemester = val;
+          _subjects = [];
+        });
+      }
     }
   }
 
   void _markAll(String status) {
     setState(() {
-      for (var s in _dummyStudents) {
-        _attendanceState[s['id']] = status;
+      for (var s in _students) {
+        _attendanceState[s['_id']] = status;
       }
     });
   }
 
   int _getCount(String status) => _attendanceState.values.where((v) => v == status).length;
 
+  Future<void> _fetchStudentsInSection() async {
+    if (_selectedBranchId == null || _selectedCourseId == null || _selectedSemester == null || _selectedSection == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select branch, course, semester and section")));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      // Logic: Show all students in that section (independent of subject)
+      final students = await AttendanceService.getStudentsForAttendance(
+        branchId: _selectedBranchId!,
+        courseId: _selectedCourseId!,
+        semester: _selectedSemester,
+        section: _selectedSection!,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _students = students;
+          _attendanceState.clear();
+          for (var s in students) {
+            _attendanceState[s['_id']] = 'Present';
+          }
+          _studentsLoaded = true;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Core error: $e")));
+      }
+    }
+  }
+
+  Future<void> _submitAttendance() async {
+    if (_selectedSubjectCode == null || _students.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please load students and select a subject for marking")));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final List<Map<String, dynamic>> list = _students.map((s) => {
+        "student": s['_id'],
+        "studentId": s['studentId'],
+        "studentName": "${s['firstName']} ${s['lastName']}",
+        "status": _attendanceState[s['_id']],
+        "isLate": _attendanceState[s['_id']] == 'Late',
+      }).toList();
+
+      final branch = _branches.firstWhere((b) => b['_id'] == _selectedBranchId)['name'];
+      final course = _courses.firstWhere((c) => c['_id'] == _selectedCourseId)['name'];
+
+      await AttendanceService.submitAttendanceBulk(
+        date: DateFormat('yyyy-MM-dd').format(_selectedDate),
+        attendanceList: list,
+        department: branch,
+        course: course,
+        section: _selectedSection!,
+        subject: _selectedSubjectName!,
+        subjectCode: _selectedSubjectCode!,
+      );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Attendance saved with subject info successfully!"), backgroundColor: Colors.green));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Submission failed: $e")));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    bool isMobile = MediaQuery.of(context).size.width < 900;
+    // Determine screen type
+    final double width = MediaQuery.of(context).size.width;
+    final bool isMobile = width < 700;
+    final bool isTablet = width >= 700 && width < 1100;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(isMobile ? 16 : 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(isMobile),
-            const SizedBox(height: 32),
-            _buildSelectionPanel(isMobile),
-            const SizedBox(height: 32),
-            if (_studentsLoaded) ...[
-              _buildStatsRow(),
-              const SizedBox(height: 24),
-              _buildAttendanceList(isMobile),
-            ],
-            if (!_studentsLoaded)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 64),
-                  child: Column(
-                    children: [
-                      Icon(Icons.how_to_reg_rounded, size: 80, color: Colors.grey.shade300),
-                      const SizedBox(height: 16),
-                      Text("Select class details to load students", style: TextStyle(fontSize: 16, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
+      backgroundColor: const Color(0xFFF1F5F9),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : CustomScrollView(
+            slivers: [
+              _buildSliverHeader(isMobile),
+              SliverPadding(
+                padding: EdgeInsets.all(isMobile ? 12 : (isTablet ? 20 : 32)),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    _buildFilterCockpit(isMobile, isTablet),
+                    const SizedBox(height: 24),
+                    if (_studentsLoaded) ...[
+                      _buildSummaryStrip(isMobile, isTablet),
+                      const SizedBox(height: 24),
+                      _buildRosterView(isMobile),
+                    ] else
+                      _buildEmptyPrompt(isMobile),
+                  ]),
                 ),
-              ).animate().fadeIn(),
-          ],
+              ),
+            ],
+          ),
+    );
+  }
+
+  Widget _buildSliverHeader(bool isMobile) {
+    return SliverAppBar(
+      expandedHeight: isMobile ? 100 : 120, pinned: true, elevation: 0,
+      backgroundColor: Colors.black,
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 16),
+        title: Text(
+          "Academic Gatekeeper", 
+          style: TextStyle(
+            color: Colors.white, 
+            fontWeight: FontWeight.w900, 
+            fontSize: isMobile ? 14 : 18
+          )
         ),
+        background: Opacity(opacity: 0.2, child: Container(decoration: const BoxDecoration(gradient: LinearGradient(colors: [Colors.blue, Colors.purple])))),
       ),
     );
   }
 
-  Widget _buildHeader(bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Attendance Management", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF1E293B), letterSpacing: -1)),
-        const SizedBox(height: 4),
-        Text("Mark daily attendance and generate monthly reports.", style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
-      ],
-    ).animate().fadeIn().slideY(begin: -0.1);
-  }
-
-  Widget _buildSelectionPanel(bool isMobile) {
-    Widget content;
-    
-    if (isMobile) {
-      content = Column(
+  Widget _buildFilterCockpit(bool isMobile, bool isTablet) {
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 16 : 28),
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(isMobile ? 20 : 28), 
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 40)]
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            clipBehavior: Clip.none,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _dropdown("Course", _courses, _selectedCourse, (v) => setState(() => _selectedCourse = v)),
-                const SizedBox(width: 16),
-                _dropdown("Class", _classes, _selectedClass, (v) => setState(() => _selectedClass = v)),
-                const SizedBox(width: 16),
-                _dropdown("Subject", _subjects, _selectedSubject, (v) => setState(() => _selectedSubject = v)),
-                const SizedBox(width: 16),
-                _datePickerField(),
-              ],
-            ),
-          ),
+          const Text("LOGISTICS CONTEXT", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.blue, letterSpacing: 1.5)),
           const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                if (_selectedCourse != null && _selectedClass != null && _selectedSubject != null) {
-                  setState(() => _studentsLoaded = true);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select course, class and subject")));
-                }
-              },
-              icon: const Icon(Icons.download_rounded, color: Colors.white, size: 18),
-              label: const Text("Load Students", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                backgroundColor: const Color(0xFF10B981),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
+          Wrap(
+            spacing: 16, runSpacing: 20, crossAxisAlignment: WrapCrossAlignment.end,
+            children: [
+              _attDropdown("Branch", _branches.map((b) => b['name'].toString()).toList(), _selectedBranchId != null ? _branches.firstWhere((b) => b['_id'] == _selectedBranchId)['name'] : null, (v) {
+                setState(() => _selectedBranchId = _branches.firstWhere((b) => b['name'] == v)['_id']);
+              }, isMobile),
+              _attDropdown("Course", _courses.map((c) => c['name'].toString()).toList(), _selectedCourseId != null ? _courses.firstWhere((c) => c['_id'] == _selectedCourseId)['name'] : null, _onCourseSelected, isMobile),
+              _attDropdown("Semester", _semesters, _selectedSemester, _onSemesterSelected, isMobile),
+              _attDropdown("Section", _sections, _selectedSection, (v) => setState(() => _selectedSection = v), isMobile),
+              _attDropdown("Subject for Attendance", _subjects.map((s) => s['name']?.toString() ?? "Untitled").toList(), _selectedSubjectName, (v) {
+                final sub = _subjects.firstWhere((s) => s['name'] == v);
+                setState(() {
+                  _selectedSubjectCode = sub['code'] ?? sub['name'];
+                  _selectedSubjectName = sub['name'];
+                });
+              }, isMobile),
+              _buildDateTile(isMobile),
+              SizedBox(
+                width: isMobile ? double.infinity : null,
+                child: _primaryActionBtn("LOAD ROSTER", Icons.groups_rounded, _fetchStudentsInSection, Colors.black, isMobile),
               ),
-            ),
+            ],
           ),
         ],
-      );
-    } else {
-      content = Wrap(
-        spacing: 16,
-        runSpacing: 16,
-        crossAxisAlignment: WrapCrossAlignment.end,
-        children: [
-          _dropdown("Course", _courses, _selectedCourse, (v) => setState(() => _selectedCourse = v)),
-          _dropdown("Class", _classes, _selectedClass, (v) => setState(() => _selectedClass = v)),
-          _dropdown("Subject", _subjects, _selectedSubject, (v) => setState(() => _selectedSubject = v)),
-          _datePickerField(),
-          ElevatedButton.icon(
-            onPressed: () {
-              if (_selectedCourse != null && _selectedClass != null && _selectedSubject != null) {
-                setState(() => _studentsLoaded = true);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select course, class and subject")));
-              }
-            },
-            icon: const Icon(Icons.download_rounded, color: Colors.white, size: 18),
-            label: const Text("Load Students", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              backgroundColor: const Color(0xFF10B981),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 5))],
       ),
-      child: content,
-    ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1);
+    ).animate().fadeIn().slideY(begin: 0.05);
   }
 
-  Widget _dropdown(String label, List<String> items, String? val, Function(String?) onCh) {
+  Widget _attDropdown(String label, List<String> items, String? val, Function(String?) onCh, bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
-        const SizedBox(height: 8),
+        Text(label.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 9, color: Colors.grey, letterSpacing: 1)),
+        const SizedBox(height: 10),
         Container(
-          width: 180,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+          width: isMobile ? double.infinity : 220, padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE2E8F0))),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: val,
-              hint: Text("Select", style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
-              isExpanded: true,
-              icon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey.shade400),
-              items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
+              value: val, hint: Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: Colors.blue),
+              items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)))).toList(),
               onChanged: onCh,
             ),
           ),
@@ -214,231 +317,216 @@ class _StaffAttendanceScreenState extends State<StaffAttendanceScreen> {
     );
   }
 
-  Widget _datePickerField() {
+  Widget _buildDateTile(bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Date", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
-        const SizedBox(height: 8),
+        const Text("SESSION DATE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 9, color: Colors.grey, letterSpacing: 1)),
+        const SizedBox(height: 10),
         InkWell(
           onTap: () async {
-            DateTime? picked = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2000), lastDate: DateTime(2101));
-            if (picked != null) setState(() => _selectedDate = picked);
+            DateTime? p = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2000), lastDate: DateTime(2101));
+            if (p != null) setState(() => _selectedDate = p);
           },
           child: Container(
-            width: 150,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                Icon(Icons.calendar_today_rounded, size: 16, color: Colors.grey.shade500),
-              ],
-            ),
+            width: isMobile ? double.infinity : 180, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE2E8F0))),
+            child: Row(children: [const Icon(Icons.calendar_month, size: 16, color: Colors.blue),const SizedBox(width: 10),Text(DateFormat('dd MMM yyyy').format(_selectedDate),style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold))]),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStatsRow() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      clipBehavior: Clip.none,
-      child: Row(
-        children: [
-          _statBadge("Total", _dummyStudents.length, Colors.blue),
-          const SizedBox(width: 12),
-          _statBadge("Present", _getCount('Present'), Colors.green),
-          const SizedBox(width: 12),
-          _statBadge("Late", _getCount('Late'), Colors.amber),
-          const SizedBox(width: 12),
-          _statBadge("Absent", _getCount('Absent'), Colors.red),
-          const SizedBox(width: 16),
-          _bulkActionsBtn(),
-        ],
+  Widget _primaryActionBtn(String label, IconData icon, VoidCallback tap, Color bg, bool isMobile) {
+    return ElevatedButton.icon(
+      onPressed: tap, icon: Icon(icon, color: Colors.white, size: 16),
+      label: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: bg, 
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: isMobile ? 18 : 22), 
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), 
+        elevation: 0,
+        minimumSize: isMobile ? const Size(double.infinity, 54) : null
       ),
-    ).animate().fadeIn().slideX(begin: 0.1);
-  }
-
-  Widget _bulkActionsBtn() {
-    return PopupMenuButton<String>(
-      icon: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade200)),
-        child: const Icon(Icons.more_vert_rounded, color: Colors.black87, size: 20),
-      ),
-      tooltip: "Bulk Actions",
-      onSelected: (v) => _markAll(v),
-      itemBuilder: (context) => [
-        const PopupMenuItem(value: 'Present', child: Row(children: [Icon(Icons.check_circle_rounded, color: Colors.green, size: 18), SizedBox(width: 8), Text("Mark All Present")])),
-        const PopupMenuItem(value: 'Late', child: Row(children: [Icon(Icons.access_time_filled_rounded, color: Colors.amber, size: 18), SizedBox(width: 8), Text("Mark All Late")])),
-        const PopupMenuItem(value: 'Absent', child: Row(children: [Icon(Icons.cancel_rounded, color: Colors.red, size: 18), SizedBox(width: 8), Text("Mark All Absent")])),
-      ],
     );
   }
 
-  Widget _statBadge(String title, int count, Color color) {
+  Widget _buildSummaryStrip(bool isMobile, bool isTablet) {
+    if (isMobile) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _miniMetric("TOTAL", _students.length, Colors.blue),
+                _miniMetric("PRESENT", _getCount('Present'), Colors.green),
+                _miniMetric("ABSENT", _getCount('Absent'), Colors.red),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            _bulkMarkMenu(isMobile),
+          ],
+        ),
+      );
+    }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(100)),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            child: Text("$count", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(width: 8),
-          Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
+          _miniMetric("TOTAL STUDENTS", _students.length, Colors.blue),
+          _divider(),
+          _miniMetric("STAY PRESENT", _getCount('Present'), Colors.green),
+          _divider(),
+          _miniMetric("ABSENT", _getCount('Absent'), Colors.red),
+          const Spacer(),
+          _bulkMarkMenu(isMobile),
         ],
       ),
     );
   }
 
-  Widget _buildAttendanceList(bool isMobile) {
+  Widget _miniMetric(String label, int val, Color c) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
+      Text("$val", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: c)),
+    ]);
+  }
+
+  Widget _divider() => Container(height: 30, width: 1, color: Colors.grey.shade100, margin: const EdgeInsets.symmetric(horizontal: 32));
+
+  Widget _bulkMarkMenu(bool isMobile) {
+    return PopupMenuButton<String>(
+      onSelected: (v) => _markAll(v),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), 
+        decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)), 
+        child: Row(
+          mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Text("FAST MARK", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
+            SizedBox(width: 8),
+            Icon(Icons.bolt, color: Colors.yellow, size: 16)
+          ]
+        )
+      ),
+      itemBuilder: (ctx) => [const PopupMenuItem(value: 'Present', child: Text("All Present")), const PopupMenuItem(value: 'Late', child: Text("All Late")), const PopupMenuItem(value: 'Absent', child: Text("All Absent"))],
+    );
+  }
+
+  Widget _buildRosterView(bool isMobile) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 5))],
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(isMobile ? 22 : 28), 
+        border: Border.all(color: const Color(0xFFE2E8F0))
       ),
       child: Column(
         children: [
           ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _dummyStudents.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final student = _dummyStudents[index];
-              return Padding(
-                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 16),
-                child: isMobile 
-                  ? Column(
-                      children: [
-                        Row(
-                          children: [
-                            _buildAvatar(student['id'], _attendanceState[student['id']]!),
-                            const SizedBox(width: 12),
-                            Expanded(child: _buildInfo(student['name'], student['id'])),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        _buildAttendanceControls(student['id'], isMobile: true),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        _buildAvatar(student['id'], _attendanceState[student['id']]!),
-                        const SizedBox(width: 16),
-                        Expanded(child: _buildInfo(student['name'], student['id'])),
-                        _buildAttendanceControls(student['id'], isMobile: false),
-                      ],
-                    ),
-              );
-            },
+            shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+            itemCount: _students.length,
+            separatorBuilder: (ctx, i) => Divider(height: 1, color: Colors.grey.shade100),
+            itemBuilder: (ctx, i) => _studentListTile(_students[i], isMobile),
           ),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
-              border: Border(top: BorderSide(color: Colors.grey.shade200)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16)),
-                  child: const Text("Cancel"),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Attendance Submitted Successfully!"), backgroundColor: Colors.green));
-                  },
-                  icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
-                  label: const Text("Submit Attendance", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _finalizeFooter(isMobile),
         ],
       ),
-    ).animate().fadeIn().slideY(begin: 0.1);
+    ).animate().fadeIn().slideY(begin: 0.05);
   }
 
-  Widget _buildAvatar(String id, String status) {
-    Color color = status == 'Present' ? Colors.green : (status == 'Absent' ? Colors.red : Colors.amber);
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: color, width: 2)),
-      child: CircleAvatar(
-        radius: 24,
-        backgroundColor: color.withOpacity(0.1),
-        backgroundImage: NetworkImage("https://i.pravatar.cc/150?u=$id"),
+  Widget _studentListTile(Map<String, dynamic> s, bool isMobile) {
+    return Padding(
+      padding: EdgeInsets.all(isMobile ? 12 : 20),
+      child: Row(
+        children: [
+          Hero(
+            tag: s['_id'], 
+            child: CircleAvatar(
+              radius: isMobile ? 22 : 26, 
+              backgroundImage: s['applicantPhoto'] != null ? NetworkImage(s['applicantPhoto']) : null, 
+              child: s['applicantPhoto'] == null ? const Icon(Icons.person) : null
+            )
+          ),
+          SizedBox(width: isMobile ? 12 : 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, 
+              children: [
+                Text(
+                  "${s['firstName']} ${s['lastName']}", 
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: isMobile ? 14 : 16, letterSpacing: -0.5),
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                ), 
+                Text(
+                  "ID: ${s['studentId']}", 
+                  style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)
+                )
+              ]
+            )
+          ),
+          _radioToggle(s['_id'], isMobile),
+        ],
       ),
     );
   }
 
-  Widget _buildInfo(String name, String id) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1E293B))),
-      Text(id, style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.bold)),
-    ]);
-  }
-
-  Widget _buildAttendanceControls(String studentId, {required bool isMobile}) {
-    return Row(
-      mainAxisAlignment: isMobile ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
-      children: [
-        _attButton(studentId, 'Present', Colors.green, Icons.check_circle_rounded, isMobile),
-        const SizedBox(width: 8),
-        _attButton(studentId, 'Late', Colors.amber, Icons.access_time_filled_rounded, isMobile),
-        const SizedBox(width: 8),
-        _attButton(studentId, 'Absent', Colors.red, Icons.cancel_rounded, isMobile),
-      ],
+  Widget _radioToggle(String sid, bool isMobile) {
+    return Container(
+      padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(14)),
+      child: Row(children: [_toggleItem(sid, 'P', 'Present', Colors.green), _toggleItem(sid, 'L', 'Late', Colors.amber), _toggleItem(sid, 'A', 'Absent', Colors.red)]),
     );
   }
 
-  Widget _attButton(String studentId, String value, Color color, IconData icon, bool isMobile) {
-    bool isSelected = _attendanceState[studentId] == value;
-    return Expanded(
-      flex: isMobile ? 1 : 0,
-      child: GestureDetector(
-        onTap: () => setState(() => _attendanceState[studentId] = value),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? color : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isSelected ? color : Colors.grey.shade200),
-            boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))] : [],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+  Widget _toggleItem(String sid, String label, String role, Color c) {
+    bool sel = _attendanceState[sid] == role;
+    return GestureDetector(
+      onTap: () => setState(() => _attendanceState[sid] = role),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(color: sel ? c : Colors.transparent, borderRadius: BorderRadius.circular(10)),
+        child: Text(label, style: TextStyle(color: sel ? Colors.white : Colors.grey, fontWeight: FontWeight.w900, fontSize: 11)),
+      ),
+    );
+  }
+
+  Widget _finalizeFooter(bool isMobile) {
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 20 : 32), 
+      decoration: const BoxDecoration(color: Color(0xFFF8FAFC), borderRadius: BorderRadius.vertical(bottom: Radius.circular(22))),
+      child: isMobile 
+        ? Column(
             children: [
-              Icon(icon, size: 16, color: isSelected ? Colors.white : Colors.grey.shade400),
-              if (!isMobile || isSelected) ...[
-                const SizedBox(width: 6),
-                Text(value, style: TextStyle(color: isSelected ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.bold, fontSize: 12)),
-              ],
+               Row(
+                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                 children: [
+                    const Text("LEDGER", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    Text(_selectedSubjectName ?? "Select Subject", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87)),
+                 ],
+               ),
+               const SizedBox(height: 16),
+               _primaryActionBtn("COMMIT ATTENDANCE", Icons.verified_rounded, _submitAttendance, const Color(0xFF10B981), isMobile),
+            ],
+          )
+        : Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("PREPARING LEDGER", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)), Text(_selectedSubjectName ?? "Select Subject", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87))]),
+              _primaryActionBtn("COMMIT ATTENDANCE", Icons.verified_rounded, _submitAttendance, const Color(0xFF10B981), isMobile),
             ],
           ),
-        ),
-      ),
     );
+  }
+
+  Widget _buildEmptyPrompt(bool isMobile) {
+    return Center(child: Padding(padding: const EdgeInsets.only(top: 60), child: Column(children: [Icon(Icons.hub_outlined, size: isMobile ? 60 : 80, color: Colors.grey.shade200), const SizedBox(height: 24), const Text("ORCHESTRATE SECTION ROSTER", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5))]))).animate().fadeIn();
   }
 }

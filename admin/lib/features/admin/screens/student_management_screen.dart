@@ -145,16 +145,21 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
 
     // Count students (only Active/Approved/Accepted count as filled seats)
     for (var student in _students) {
-      final progVal = student['selectedProgram'] as String?;
+      final progRaw = student['selectedProgram'];
       final status = student['status'] as String?;
       final studentStatus = student['studentStatus'] as String?;
-      if (progVal == null) continue;
-
-      String? matchedId = progVal;
-      if (!stats.containsKey(progVal)) {
-        final match = _courses.where((c) => c['name'] == progVal).firstOrNull;
-        if (match != null) {
-          matchedId = match['_id'] as String?;
+      
+      if (progRaw == null) continue;
+      
+      String? matchedId;
+      if (progRaw is Map) {
+        matchedId = progRaw['_id']?.toString();
+      } else {
+        matchedId = progRaw.toString();
+        // Check if progVal is actually a name, if so match to ID
+        if (!stats.containsKey(matchedId)) {
+          final match = _courses.firstWhere((c) => c['name'] == matchedId, orElse: () => null);
+          if (match != null) matchedId = match['_id'] as String?;
         }
       }
 
@@ -1038,17 +1043,21 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
         ? [const Color(0xFF7F1D1D), const Color(0xFFEF4444)]
         : [const Color(0xFF78350F), const Color(0xFFF59E0B)];
 
-    final courseId = student['selectedProgram'];
-    final courseName =
-        _courses.where((c) => c['_id'] == courseId).firstOrNull?['name'] ??
-        courseId ??
-        'Unknown Course';
+    final courseRaw = student['selectedProgram'];
+    String courseName = 'Unknown Course';
+    if (courseRaw is Map) {
+      courseName = courseRaw['name'] ?? 'Unknown Course';
+    } else if (courseRaw != null) {
+      courseName = _courses.firstWhere((c) => c['_id'] == courseRaw, orElse: () => {})['name'] ?? courseRaw.toString();
+    }
 
-    final branchId = student['selectedBranch'];
-    final branchName =
-        _branches.where((b) => b['_id'] == branchId).firstOrNull?['name'] ??
-        branchId ??
-        'Unknown Branch';
+    final branchRaw = student['selectedBranch'];
+    String branchName = 'Unknown Branch';
+    if (branchRaw is Map) {
+      branchName = branchRaw['name'] ?? 'Unknown Branch';
+    } else if (branchRaw != null) {
+      branchName = _branches.firstWhere((b) => b['_id'] == branchRaw, orElse: () => {})['name'] ?? branchRaw.toString();
+    }
 
     final name = "${student['firstName']} ${student['lastName']}";
     final city = student['city'] ?? "N/A";
