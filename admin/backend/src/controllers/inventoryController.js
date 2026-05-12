@@ -36,6 +36,7 @@ export const createItem = async (req, res) => {
         const populated = await item.populate('lab', 'labName roomNumber');
         res.status(201).json({ message: 'Item added to inventory', item: populated });
     } catch (error) {
+        console.error('Create Inventory Item Error:', error);
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };

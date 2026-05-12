@@ -49,9 +49,6 @@ class _LabsManagementScreenState extends State<LabsManagementScreen> {
     }
   }
 
-  // ─────────────────────────────────────────────────────
-  // ADD / EDIT DIALOG
-  // ─────────────────────────────────────────────────────
   void _showAddEditDialog([Map<String, dynamic>? lab]) {
     final isEditing = lab != null;
     final nameCtrl = TextEditingController(text: isEditing ? (lab['labName'] ?? '') : '');
@@ -63,10 +60,11 @@ class _LabsManagementScreenState extends State<LabsManagementScreen> {
     String selectedType = isEditing ? (lab['labType'] ?? 'Computer') : 'Computer';
     String? selectedFacultyId;
 
-    // Pre-select faculty when editing
     if (isEditing) {
       final incharge = lab['labIncharge'];
-      selectedFacultyId = (incharge is Map) ? incharge['_id']?.toString() : incharge?.toString();
+      final id = (incharge is Map) ? incharge['_id']?.toString() : incharge?.toString();
+      bool exists = _facultyList.any((f) => f['_id']?.toString() == id);
+      if (exists) selectedFacultyId = id;
     }
 
     bool isSaving = false;
@@ -75,272 +73,381 @@ class _LabsManagementScreenState extends State<LabsManagementScreen> {
       context: context,
       barrierDismissible: !isSaving,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-          contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-          actionsPadding: const EdgeInsets.all(20),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.science_rounded, color: Colors.deepPurple, size: 22),
+        builder: (ctx, setDialogState) {
+          final size = MediaQuery.of(ctx).size;
+          final isSmall = size.width < 600;
+
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: EdgeInsets.symmetric(
+              horizontal: isSmall ? 16 : 40,
+              vertical: isSmall ? 20 : 40,
+            ),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 580),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 40,
+                    offset: const Offset(0, 20),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Text(
-                isEditing ? 'Edit Lab' : 'Add New Lab',
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: 460,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(height: 12),
-
-                    // Lab Name
-                    _field(
-                      controller: nameCtrl,
-                      label: 'Lab Name',
-                      icon: Icons.label_rounded,
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Lab name is required' : null,
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Room + Capacity row
-                    Row(children: [
-                      Expanded(
-                        child: _field(
-                          controller: roomCtrl,
-                          label: 'Room No.',
-                          icon: Icons.meeting_room_rounded,
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    // ── HEADER WITH GRADIENT ─────────────────────────────
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(32),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _field(
-                          controller: capCtrl,
-                          label: 'Capacity',
-                          icon: Icons.event_seat_rounded,
-                          keyboardType: TextInputType.number,
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) return 'Required';
-                            if (int.tryParse(v.trim()) == null) return 'Must be a number';
-                            return null;
-                          },
-                        ),
-                      ),
-                    ]),
-                    const SizedBox(height: 14),
-
-                    // Lab Type
-                    DropdownButtonFormField<String>(
-                      value: selectedType,
-                      decoration: _dropDecor('Lab Type', Icons.category_rounded),
-                      validator: (v) => v == null ? 'Required' : null,
-                      items: ['Computer', 'Chemistry', 'Physics', 'Engineering', 'Media', 'Robotics', 'Other']
-                          .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                          .toList(),
-                      onChanged: (val) => setDialogState(() => selectedType = val ?? 'Computer'),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Faculty Dropdown — dynamic from DB
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Dropdown (or warning) ─────────────────────────
-                        if (_facultyList.isEmpty)
+                      child: Row(
+                        children: [
                           Container(
-                            padding: const EdgeInsets.all(14),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.amber.shade50,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Colors.amber.shade200),
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            child: Row(children: [
-                              Icon(Icons.group_off_rounded, color: Colors.amber.shade800, size: 20),
-                              const SizedBox(width: 8),
-                              const Expanded(
-                                child: Text(
-                                  'No staff/faculty found. Add one below.',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                            ]),
-                          )
-                        else
-                          DropdownButtonFormField<String>(
-                            value: selectedFacultyId,
-                            decoration: _dropDecor('Lab Incharge (Faculty)', Icons.person_rounded),
-                            validator: (v) => v == null ? 'Please select faculty' : null,
-                            isExpanded: true,
-                            items: _facultyList.map((f) {
-                              final name = '${f['firstName'] ?? ''} ${f['lastName'] ?? ''}'.trim();
-                              final dept = f['department']?.toString() ?? '';
-                              final photo = f['profilePhoto']?.toString() ?? '';
-                              return DropdownMenuItem<String>(
-                                value: f['_id']?.toString(),
-                                child: Row(children: [
-                                  CircleAvatar(
-                                    radius: 14,
-                                    backgroundColor: Colors.deepPurple.shade100,
-                                    backgroundImage: photo.isNotEmpty ? NetworkImage(photo) : null,
-                                    child: photo.isEmpty
-                                        ? Text(
-                                            name.isEmpty ? '?' : name[0].toUpperCase(),
-                                            style: const TextStyle(color: Colors.deepPurple, fontSize: 11, fontWeight: FontWeight.bold),
-                                          )
-                                        : null,
+                            child: Icon(
+                              isEditing ? Icons.edit_note_rounded : Icons.add_business_rounded,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isEditing ? 'Edit Laboratory' : 'Create New Lab',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.5,
                                   ),
-                                  const SizedBox(width: 10),
+                                ),
+                                Text(
+                                  isEditing ? 'Update your workspace details' : 'Set up a new learning environment',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            icon: const Icon(Icons.close_rounded, color: Colors.white),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.white.withValues(alpha: 0.1),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ── FORM CONTENT ─────────────────────────────────────
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(32),
+                        child: Form(
+                          key: formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _sectionHeader('BASIC DETAILS'),
+                              const SizedBox(height: 16),
+                              _field(
+                                controller: nameCtrl,
+                                label: 'Laboratory Name',
+                                icon: Icons.science_rounded,
+                                validator: (v) => (v?.isEmpty ?? true) ? 'Name is required' : null,
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
                                   Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
+                                    child: _field(
+                                      controller: roomCtrl,
+                                      label: 'Room Number',
+                                      icon: Icons.meeting_room_rounded,
+                                      validator: (v) => (v?.isEmpty ?? true) ? 'Required' : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _field(
+                                      controller: capCtrl,
+                                      label: 'Max Capacity',
+                                      icon: Icons.groups_rounded,
+                                      keyboardType: TextInputType.number,
+                                      validator: (v) => (v?.isEmpty ?? true) ? 'Required' : null,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              DropdownButtonFormField<String>(
+                                initialValue: selectedType,
+                                decoration: _dropDecor('Lab Category', Icons.category_rounded),
+                                items: ['Computer', 'Physics', 'Chemistry', 'Biology', 'Electronics', 'Mechanical', 'General']
+                                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                                    .toList(),
+                                onChanged: (v) => setDialogState(() => selectedType = v!),
+                              ),
+                              
+                              const SizedBox(height: 32),
+                              _sectionHeader('STAFF & MANAGEMENT'),
+                              const SizedBox(height: 16),
+                              
+                              if (_facultyList.isEmpty)
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.shade50,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.amber.shade200),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800),
+                                      const SizedBox(width: 12),
+                                      const Expanded(
+                                        child: Text(
+                                          'No faculty members found. Create one to assign an incharge.',
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                  DropdownButtonFormField<String>(
+                                    initialValue: selectedFacultyId,
+                                    isExpanded: true,
+                                    itemHeight: null,
+                                    decoration: _dropDecor('Lab Incharge', Icons.admin_panel_settings_rounded),
+                                    hint: const Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text('Select a faculty member'),
+                                    ),
+                                    selectedItemBuilder: (ctx) => _facultyList.map((f) {
+                                      final name = '${f['firstName'] ?? ''} ${f['lastName'] ?? ''}'.trim();
+                                      return Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          name,
+                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      );
+                                    }).toList(),
+                                    items: _facultyList.map((f) {
+                                      final name = '${f['firstName'] ?? ''} ${f['lastName'] ?? ''}'.trim();
+                                      final photo = f['profilePhoto']?.toString() ?? '';
+                                      return DropdownMenuItem<String>(
+                                        value: f['_id']?.toString(),
+                                        child: Row(
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 18,
+                                              backgroundColor: const Color(0xFFEEF2FF),
+                                              backgroundImage: photo.isNotEmpty ? NetworkImage(photo) : null,
+                                              child: photo.isEmpty ? Text(name.isNotEmpty ? name[0] : '?', style: const TextStyle(fontSize: 12)) : null,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                name,
+                                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (v) => setDialogState(() => selectedFacultyId = v),
+                                  ),
+                              
+                              const SizedBox(height: 12),
+                              Material(
+                                color: const Color(0xFFF5F3FF),
+                                borderRadius: BorderRadius.circular(16),
+                                child: InkWell(
+                                  onTap: () async {
+                                    final newStaff = await _showAddStaffDialog(ctx);
+                                    if (newStaff != null) {
+                                      setDialogState(() {
+                                        _facultyList.add(newStaff);
+                                        selectedFacultyId = newStaff['_id']?.toString();
+                                      });
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: const Color(0xFFDDD6FE)),
+                                    ),
+                                    child: const Row(
                                       children: [
-                                        Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14), overflow: TextOverflow.ellipsis),
-                                        if (dept.isNotEmpty)
-                                          Text(dept, style: TextStyle(fontSize: 11, color: Colors.grey.shade600), overflow: TextOverflow.ellipsis),
+                                        Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF6D28D9)),
+                                        SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text('Add New Faculty', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF5B21B6))),
+                                              Text('Register and assign directly', style: TextStyle(fontSize: 11, color: Color(0xFF7C3AED))),
+                                            ],
+                                          ),
+                                        ),
+                                        Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF7C3AED)),
                                       ],
                                     ),
                                   ),
-                                ]),
-                              );
-                            }).toList(),
-                            onChanged: (val) => setDialogState(() => selectedFacultyId = val),
-                          ),
-
-                        // ── '+ Add New Staff' button — always visible ─────
-                        const SizedBox(height: 10),
-                        GestureDetector(
-                          onTap: () async {
-                            // Show mini add-staff dialog on top
-                            final newStaff = await _showAddStaffDialog(ctx);
-                            if (newStaff != null) {
-                              // Add to local faculty list and auto-select
-                              setDialogState(() {
-                                _facultyList.add(newStaff);
-                                selectedFacultyId = newStaff['_id']?.toString();
-                              });
-                              _snack('Staff "${newStaff['firstName']} ${newStaff['lastName']}" added!', Colors.green.shade700);
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.deepPurple.shade50,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Colors.deepPurple.shade200),
-                            ),
-                            child: Row(children: [
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: Colors.deepPurple,
-                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 16),
                               ),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('+ Add New Staff Member', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.deepPurple, fontSize: 14)),
-                                  Text('Create & auto-select a staff user', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                                ],
+
+                              const SizedBox(height: 32),
+                              _sectionHeader('ADDITIONAL INFORMATION'),
+                              const SizedBox(height: 16),
+                              _field(
+                                controller: descCtrl,
+                                label: 'Internal Notes',
+                                icon: Icons.description_rounded,
+                                maxLines: 3,
                               ),
-                            ]),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 14),
 
-                    // Description
-                    _field(
-                      controller: descCtrl,
-                      label: 'Description (Optional)',
-                      icon: Icons.notes_rounded,
-                      maxLines: 2,
+                    // ── FOOTER ───────────────────────────────────────────
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: isSaving ? null : () => Navigator.pop(ctx),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                side: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              onPressed: isSaving ? null : () async {
+                                if (!formKey.currentState!.validate()) return;
+                                setDialogState(() => isSaving = true);
+                                try {
+                                  if (isEditing) {
+                                    await LabService.updateLab(
+                                      labId: lab['_id']?.toString() ?? '',
+                                      fields: {
+                                        'labName': nameCtrl.text.trim(),
+                                        'roomNumber': roomCtrl.text.trim(),
+                                        'capacity': int.parse(capCtrl.text.trim()),
+                                        'labType': selectedType,
+                                        'labIncharge': selectedFacultyId,
+                                        'description': descCtrl.text.trim(),
+                                      },
+                                    );
+                                  } else {
+                                    await LabService.createLab(
+                                      labName: nameCtrl.text.trim(),
+                                      roomNumber: roomCtrl.text.trim(),
+                                      capacity: int.parse(capCtrl.text.trim()),
+                                      labType: selectedType,
+                                      labInchargeId: selectedFacultyId ?? '',
+                                      description: descCtrl.text.trim(),
+                                    );
+                                  }
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                  _loadAll();
+                                  _snack(isEditing ? 'Updated successfully!' : 'Created successfully!', Colors.green.shade700);
+                                } catch (e) {
+                                  setDialogState(() => isSaving = false);
+                                  _snack(e.toString().replaceAll('Exception: ', ''), Colors.red.shade700);
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF4F46E5),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              ),
+                              child: isSaving
+                                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : Text(isEditing ? 'Save Changes' : 'Create Lab', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 4),
                   ],
                 ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: isSaving ? null : () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              onPressed: isSaving
-                  ? null
-                  : () async {
-                      if (!formKey.currentState!.validate()) return;
-                      if (_facultyList.isNotEmpty && selectedFacultyId == null) return;
-
-                      setDialogState(() => isSaving = true);
-                      try {
-                        if (isEditing) {
-                          await LabService.updateLab(
-                            labId: lab['_id']?.toString() ?? '',
-                            fields: {
-                              'labName': nameCtrl.text.trim(),
-                              'roomNumber': roomCtrl.text.trim(),
-                              'capacity': int.parse(capCtrl.text.trim()),
-                              'labType': selectedType,
-                              if (selectedFacultyId != null) 'labIncharge': selectedFacultyId,
-                              'description': descCtrl.text.trim(),
-                            },
-                          );
-                        } else {
-                          await LabService.createLab(
-                            labName: nameCtrl.text.trim(),
-                            roomNumber: roomCtrl.text.trim(),
-                            capacity: int.parse(capCtrl.text.trim()),
-                            labType: selectedType,
-                            labInchargeId: selectedFacultyId ?? '',
-                            description: descCtrl.text.trim(),
-                          );
-                        }
-
-                        if (ctx.mounted) Navigator.pop(ctx);
-                        _loadAll();
-                        if (mounted) _snack(isEditing ? 'Lab updated!' : 'Lab created!', Colors.green.shade700);
-                      } catch (e) {
-                        setDialogState(() => isSaving = false);
-                        if (mounted) _snack(e.toString().replaceAll('Exception: ', ''), Colors.red.shade700);
-                      }
-                    },
-              child: isSaving
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text(
-                      isEditing ? 'Save Changes' : 'Create Lab',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-            ),
-          ],
-        ),
+          ).animate().scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutBack, duration: 300.ms).fadeIn();
+        },
       ),
+    );
+  }
+
+
+  Widget _sectionHeader(String title) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF4338CA),
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          width: 40,
+          height: 3,
+          decoration: BoxDecoration(
+            color: const Color(0xFF4F46E5),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      ],
     );
   }
 
@@ -455,7 +562,7 @@ class _LabsManagementScreenState extends State<LabsManagementScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: selectedRole,
+                          initialValue: selectedRole,
                           decoration: InputDecoration(
                             labelText: 'Role',
                             prefixIcon: const Icon(Icons.badge_rounded, color: Colors.deepPurple, size: 20),
@@ -589,186 +696,289 @@ class _LabsManagementScreenState extends State<LabsManagementScreen> {
       body: RefreshIndicator(
         onRefresh: _loadAll,
         color: Colors.deepPurple,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-          padding: const EdgeInsets.all(28),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            bool isMobile = constraints.maxWidth < 800;
+            
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              padding: EdgeInsets.all(isMobile ? 16 : 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── HEADER WITH ADD BUTTON ──────────────────────────────
+                  _buildHeader(isMobile),
+                  const SizedBox(height: 28),
+    
+                  // ── ERROR BANNER ───────────────────────────────────────────
+                  if (_fetchError != null) _buildErrorBanner(),
+    
+                  // ── DATA CONTENT ───────────────────────────────────────────
+                  if (_isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 80),
+                        child: CircularProgressIndicator(color: Colors.deepPurple),
+                      ),
+                    )
+                  else if (_labs.isEmpty && _fetchError == null)
+                    _buildEmptyState()
+                  else
+                    isMobile ? _buildCardsList() : _buildDesktopTable(constraints.maxWidth),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool isMobile) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Laboratory Directory',
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _isLoading ? 'Loading...' : '${_labs.length} labs · ${_facultyList.length} faculty',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            if (!isMobile) _buildAddButton(),
+          ],
+        ),
+        if (isMobile) ...[
+          const SizedBox(height: 16),
+          SizedBox(width: double.infinity, child: _buildAddButton()),
+        ],
+      ],
+    ).animate().fadeIn().slideY(begin: -0.1);
+  }
+
+  Widget _buildAddButton() {
+    return ElevatedButton.icon(
+      onPressed: () => _showAddEditDialog(),
+      icon: const Icon(Icons.add_rounded, color: Colors.white),
+      label: const Text('Add Lab', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.deepPurple,
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 4,
+        shadowColor: Colors.deepPurple.withValues(alpha: 0.3),
+      ),
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Row(children: [
+        Icon(Icons.wifi_off_rounded, color: Colors.red.shade700),
+        const SizedBox(width: 12),
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── HEADER WITH ADD BUTTON (always visible) ──────────────
+              const Text('Could not load labs from server.', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(_fetchError!, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            ],
+          ),
+        ),
+        IconButton(onPressed: _loadAll, icon: const Icon(Icons.refresh_rounded, color: Colors.red)),
+      ]),
+    );
+  }
+
+  Widget _buildCardsList() {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _labs.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (ctx, index) {
+        final lab = _labs[index];
+        final incharge = lab['labIncharge'];
+        final inchargeName = (incharge is Map)
+            ? '${incharge['firstName'] ?? ''} ${incharge['lastName'] ?? ''}'.trim()
+            : 'Unassigned';
+            
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.deepPurple.shade50, borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.science_rounded, color: Colors.deepPurple, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(lab['labName'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                        Text('Room: ${lab['roomNumber'] ?? ''}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                  _typeBadge(lab['labType'] ?? ''),
+                ],
+              ),
+              const Divider(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Laboratory Directory',
-                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
-                      ),
+                      const Text('Incharge', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
-                      Text(
-                        _isLoading ? 'Loading...' : '${_labs.length} labs · ${_facultyList.length} faculty',
-                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                      Text(inchargeName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+                        onPressed: () => _showAddEditDialog(lab),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_rounded, color: Colors.red),
+                        onPressed: () => _deleteLab(lab['_id']?.toString() ?? '', lab['labName'] ?? ''),
                       ),
                     ],
                   ),
-                  // ADD LAB BUTTON — always present
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddEditDialog(),
-                    icon: const Icon(Icons.add_rounded, color: Colors.white),
-                    label: const Text('Add Lab', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 4,
-                      shadowColor: Colors.deepPurple.withOpacity(0.3),
-                    ),
-                  ),
                 ],
-              ).animate().fadeIn().slideY(begin: -0.1),
-              const SizedBox(height: 28),
+              ),
+            ],
+          ),
+        );
+      },
+    ).animate().fadeIn(delay: 200.ms);
+  }
 
-              // ── ERROR BANNER (non-blocking) ───────────────────────────
-              if (_fetchError != null)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 20),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Row(children: [
-                    Icon(Icons.wifi_off_rounded, color: Colors.red.shade700),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Could not load labs from server.', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text(_fetchError!, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                        ],
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: _loadAll,
-                      icon: const Icon(Icons.refresh_rounded, size: 16),
-                      label: const Text('Retry'),
-                      style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
-                    ),
-                  ]),
-                ),
+  Widget _buildDesktopTable(double totalWidth) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 20, offset: const Offset(0, 10))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: totalWidth - 56), // Subtract padding
+            child: DataTable(
+              headingRowColor: WidgetStateProperty.all(Colors.deepPurple.shade50),
+              dataRowMinHeight: 72,
+              dataRowMaxHeight: 72,
+              horizontalMargin: 24,
+              columnSpacing: 20,
+              columns: const [
+                DataColumn(label: Text('LAB NAME', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
+                DataColumn(label: Text('ROOM', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
+                DataColumn(label: Text('TYPE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
+                DataColumn(label: Text('CAPACITY', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
+                DataColumn(label: Text('INCHARGE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
+                DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
+              ],
+              rows: _labs.map((lab) {
+                final incharge = lab['labIncharge'];
+                final inchargeName = (incharge is Map)
+                    ? '${incharge['firstName'] ?? ''} ${incharge['lastName'] ?? ''}'.trim()
+                    : 'Unassigned';
+                final inchargePhoto = (incharge is Map) ? (incharge['profilePhoto']?.toString() ?? '') : '';
 
-              // ── LOADING ───────────────────────────────────────────────
-              if (_isLoading)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 80),
-                    child: Column(
+                return DataRow(
+                  cells: [
+                    DataCell(Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CircularProgressIndicator(color: Colors.deepPurple),
-                        SizedBox(height: 16),
-                        Text('Loading labs...', style: TextStyle(color: Colors.grey)),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(color: Colors.deepPurple.shade50, borderRadius: BorderRadius.circular(10)),
+                          child: const Icon(Icons.science_rounded, color: Colors.deepPurple, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(lab['labName'] ?? '', style: const TextStyle(fontWeight: FontWeight.w700)),
                       ],
-                    ),
-                  ),
-                )
-
-              // ── EMPTY STATE ───────────────────────────────────────────
-              else if (_labs.isEmpty && _fetchError == null)
-                _buildEmptyState()
-
-              // ── DATA TABLE ────────────────────────────────────────────
-              else if (_labs.isNotEmpty)
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.grey.shade200),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10))],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(Colors.deepPurple.shade50),
-                        dataRowMinHeight: 72,
-                        dataRowMaxHeight: 72,
-                        horizontalMargin: 24,
-                        columnSpacing: 28,
-                        columns: const [
-                          DataColumn(label: Text('LAB NAME', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
-                          DataColumn(label: Text('ROOM', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
-                          DataColumn(label: Text('TYPE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
-                          DataColumn(label: Text('CAPACITY', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
-                          DataColumn(label: Text('INCHARGE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
-                          DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
-                        ],
-                        rows: _labs.map((lab) {
-                          final incharge = lab['labIncharge'];
-                          final inchargeName = (incharge is Map)
-                              ? '${incharge['firstName'] ?? ''} ${incharge['lastName'] ?? ''}'.trim()
-                              : 'Unassigned';
-                          final inchargePhoto = (incharge is Map) ? (incharge['profilePhoto']?.toString() ?? '') : '';
-
-                          return DataRow(
-                            cells: [
-                              DataCell(Row(children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(color: Colors.deepPurple.shade50, borderRadius: BorderRadius.circular(10)),
-                                  child: const Icon(Icons.science_rounded, color: Colors.deepPurple, size: 18),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(lab['labName'] ?? '', style: const TextStyle(fontWeight: FontWeight.w700)),
-                              ])),
-                              DataCell(Text(lab['roomNumber'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600))),
-                              DataCell(_typeBadge(lab['labType'] ?? '')),
-                              DataCell(Text('${lab['capacity'] ?? 0} seats', style: TextStyle(color: Colors.grey.shade600))),
-                              DataCell(Row(children: [
-                                CircleAvatar(
-                                  radius: 15,
-                                  backgroundColor: Colors.deepPurple.shade100,
-                                  backgroundImage: inchargePhoto.isNotEmpty ? NetworkImage(inchargePhoto) : null,
-                                  child: inchargePhoto.isEmpty
-                                      ? Text(
-                                          inchargeName.isEmpty ? '?' : inchargeName[0].toUpperCase(),
-                                          style: const TextStyle(color: Colors.deepPurple, fontSize: 12, fontWeight: FontWeight.bold),
-                                        )
-                                      : null,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(inchargeName.isEmpty ? 'Unassigned' : inchargeName,
-                                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                              ])),
-                              DataCell(Row(children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit_rounded, color: Colors.blue, size: 20),
-                                  onPressed: () => _showAddEditDialog(lab),
-                                  tooltip: 'Edit',
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_rounded, color: Colors.red, size: 20),
-                                  onPressed: () => _deleteLab(lab['_id']?.toString() ?? '', lab['labName'] ?? ''),
-                                  tooltip: 'Delete',
-                                ),
-                              ])),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-                ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
-            ],
+                    )),
+                    DataCell(Text(lab['roomNumber'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600))),
+                    DataCell(_typeBadge(lab['labType'] ?? '')),
+                    DataCell(Text('${lab['capacity'] ?? 0} seats', style: TextStyle(color: Colors.grey.shade600))),
+                    DataCell(Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 15,
+                          backgroundColor: Colors.deepPurple.shade100,
+                          backgroundImage: inchargePhoto.isNotEmpty ? NetworkImage(inchargePhoto) : null,
+                          child: inchargePhoto.isEmpty
+                              ? Text(
+                                  inchargeName.isEmpty ? '?' : inchargeName[0].toUpperCase(),
+                                  style: const TextStyle(color: Colors.deepPurple, fontSize: 12, fontWeight: FontWeight.bold),
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text(inchargeName.isEmpty ? 'Unassigned' : inchargeName,
+                            style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                      ],
+                    )),
+                    DataCell(Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_rounded, color: Colors.blue, size: 20),
+                          onPressed: () => _showAddEditDialog(lab),
+                          tooltip: 'Edit',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_rounded, color: Colors.red, size: 20),
+                          onPressed: () => _deleteLab(lab['_id']?.toString() ?? '', lab['labName'] ?? ''),
+                          tooltip: 'Delete',
+                        ),
+                      ],
+                    )),
+                  ],
+                );
+              }).toList(),
+            ),
           ),
         ),
       ),
-    );
+    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1);
   }
 
   Widget _typeBadge(String type) {
@@ -817,19 +1027,29 @@ class _LabsManagementScreenState extends State<LabsManagementScreen> {
       validator: validator,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: Colors.deepPurple, size: 20),
+        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+        prefixIcon: Icon(icon, color: const Color(0xFF4F46E5), size: 20),
         filled: true,
-        fillColor: Colors.grey.shade50,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        fillColor: const Color(0xFFF8FAFC),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
+          borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderSide: const BorderSide(color: Colors.red, width: 1),
         ),
       ),
     );
@@ -838,13 +1058,22 @@ class _LabsManagementScreenState extends State<LabsManagementScreen> {
   InputDecoration _dropDecor(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, color: Colors.deepPurple, size: 20),
+      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+      prefixIcon: Icon(icon, color: const Color(0xFF4F46E5), size: 20),
       filled: true,
-      fillColor: Colors.grey.shade50,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+      fillColor: const Color(0xFFF8FAFC),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
+        borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 2),
       ),
     );
   }

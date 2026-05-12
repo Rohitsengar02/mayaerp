@@ -10,7 +10,7 @@ const inventoryItemSchema = new mongoose.Schema({
     },
     quantity: { type: Number, required: true, default: 0 },
     availableQuantity: { type: Number, default: 0 },
-    lab: { type: mongoose.Schema.Types.ObjectId, ref: 'Lab', required: true },
+    lab: { type: mongoose.Schema.Types.ObjectId, ref: 'LabFacility', required: true },
     condition: {
         type: String,
         enum: ['Good', 'Needs Repair', 'Damaged', 'Lost', 'Disposed'],
@@ -27,12 +27,11 @@ const inventoryItemSchema = new mongoose.Schema({
 });
 
 // Auto-set availableQuantity on create
-inventoryItemSchema.pre('save', function (next) {
+inventoryItemSchema.pre('save', function () {
     if (this.isNew && this.availableQuantity === 0) {
         this.availableQuantity = this.quantity;
     }
     this.updatedAt = new Date();
-    next();
 });
 
 export default mongoose.model('InventoryItem', inventoryItemSchema);

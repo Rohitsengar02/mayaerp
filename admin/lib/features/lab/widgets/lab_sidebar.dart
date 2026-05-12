@@ -15,11 +15,8 @@ class LabSidebar extends StatelessWidget {
   final List<Map<String, dynamic>> _menuItems = [
     {"icon": Icons.dashboard_rounded, "label": "Dashboard"},
     {"icon": Icons.science_rounded, "label": "Labs"},
-    {"icon": Icons.account_tree_rounded, "label": "Subject Mapping"},
     {"icon": Icons.inventory_2_rounded, "label": "Inventory"},
-    {"icon": Icons.swap_horiz_rounded, "label": "Issue/Return"},
     {"icon": Icons.bar_chart_rounded, "label": "Reports"},
-    {"icon": Icons.settings_rounded, "label": "Settings"},
   ];
 
   @override

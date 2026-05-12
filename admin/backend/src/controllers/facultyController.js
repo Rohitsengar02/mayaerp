@@ -38,7 +38,7 @@ export const deleteFaculty = async (req, res) => {
 export const getAllFacultyUsers = async (req, res) => {
     try {
         const faculty = await User.find(
-            { role: { $in: ['Faculty', 'Staff', 'HOD', 'Principal'] }, status: 'Active' },
+            { role: { $in: ['Faculty', 'Staff', 'HOD', 'Principal', 'Lab'] }, status: 'Active' },
             'firstName lastName email department role employeeId profilePhoto'
         ).sort({ firstName: 1 });
         res.json(faculty);

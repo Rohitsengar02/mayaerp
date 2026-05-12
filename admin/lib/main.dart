@@ -8,6 +8,9 @@ import 'features/admin/screens/admin_shell.dart';
 import 'features/library/screens/library_shell.dart';
 import 'features/staff/screens/staff_shell.dart';
 
+import 'features/lab/screens/lab_shell.dart';
+import 'features/office/screens/office_shell.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: "assets/.env");
@@ -33,9 +36,12 @@ void main() async {
       case 'LIBRARY':
         initialHome = const LibraryShell();
         break;
+      case 'LAB':
+        initialHome = const LabShell();
+        break;
       case 'OFFICE':
       case 'ACCOUNTANT':
-        initialHome = const Scaffold(body: Center(child: Text("Office Panel")));
+        initialHome = const OfficeShell();
         break;
       default:
         initialHome = const ShowcaseScreen();

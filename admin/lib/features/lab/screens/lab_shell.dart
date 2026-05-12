@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/lab_sidebar.dart';
 import 'lab_dashboard_screen.dart';
 import 'labs_management_screen.dart';
-import 'subject_lab_mapping_screen.dart';
 import 'lab_inventory_screen.dart';
-import 'issue_return_screen.dart';
 import 'placeholder_screens.dart';
 
 class LabShell extends StatefulWidget {
@@ -21,11 +19,8 @@ class _LabShellState extends State<LabShell> {
   final List<Widget> _screens = [
     const LabDashboardScreen(),
     const LabsManagementScreen(),
-    const SubjectLabMappingScreen(),
     const LabInventoryScreen(),
-    const IssueReturnScreen(),
     const ReportsScreen(),
-    const LabSettingsScreen(),
   ];
 
   @override
@@ -82,7 +77,7 @@ class _LabShellState extends State<LabShell> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -95,7 +90,7 @@ class _LabShellState extends State<LabShell> {
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.deepPurple.withOpacity(0.1),
+                color: Colors.deepPurple.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.menu_rounded, color: Colors.deepPurple, size: 20),

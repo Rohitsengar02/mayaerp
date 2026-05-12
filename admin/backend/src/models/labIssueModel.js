@@ -7,7 +7,7 @@ const labIssueSchema = new mongoose.Schema({
         default: () => `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     },
     item: { type: mongoose.Schema.Types.ObjectId, ref: 'InventoryItem', required: true },
-    lab: { type: mongoose.Schema.Types.ObjectId, ref: 'Lab' },
+    lab: { type: mongoose.Schema.Types.ObjectId, ref: 'LabFacility' },
     issuedTo: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,

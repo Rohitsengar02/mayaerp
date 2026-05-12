@@ -9,5 +9,5 @@ const facultySchema = new mongoose.Schema({
     joinedDate: { type: Date, default: Date.now }
 }, { timestamps: true });
 
-const Faculty = mongoose.model('Faculty', facultySchema);
+const Faculty = mongoose.models.Faculty || mongoose.model('Faculty', facultySchema);
 export default Faculty;

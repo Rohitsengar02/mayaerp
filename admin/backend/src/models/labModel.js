@@ -15,4 +15,4 @@ const labSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-export default mongoose.models.Lab || mongoose.model('Lab', labSchema);
+export default mongoose.models.LabFacility || mongoose.model('LabFacility', labSchema);

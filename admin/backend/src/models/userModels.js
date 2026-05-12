@@ -40,12 +40,12 @@ userSchema.pre('save', async function () {
     this.password = await bcrypt.hash(this.password, 10);
 });
 
-export const User = mongoose.model('User', userSchema);
+export const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 // Create discriminators for the seed script
-export const Admin = User.discriminator('Admin', new mongoose.Schema({}));
-export const OfficeStaff = User.discriminator('Office', new mongoose.Schema({}));
-export const Staff = User.discriminator('Staff', new mongoose.Schema({}));
-export const FacultyStaff = User.discriminator('Faculty', new mongoose.Schema({}));
-export const Librarian = User.discriminator('Library', new mongoose.Schema({}));
-export const LabAdmin = User.discriminator('Lab', new mongoose.Schema({}));
+export const Admin = User.discriminators?.Admin || User.discriminator('Admin', new mongoose.Schema({}));
+export const OfficeStaff = User.discriminators?.Office || User.discriminator('Office', new mongoose.Schema({}));
+export const Staff = User.discriminators?.Staff || User.discriminator('Staff', new mongoose.Schema({}));
+export const FacultyStaff = User.discriminators?.Faculty || User.discriminator('Faculty', new mongoose.Schema({}));
+export const Librarian = User.discriminators?.Library || User.discriminator('Library', new mongoose.Schema({}));
+export const LabAdmin = User.discriminators?.Lab || User.discriminator('Lab', new mongoose.Schema({}));

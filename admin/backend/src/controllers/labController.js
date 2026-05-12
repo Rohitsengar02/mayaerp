@@ -7,6 +7,7 @@ export const getAllLabs = async (req, res) => {
         const labs = await Lab.find().populate('labIncharge', 'firstName lastName email role department');
         res.json(labs);
     } catch (error) {
+        console.error('Error in getAllLabs:', error);
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
@@ -35,6 +36,7 @@ export const createLab = async (req, res) => {
         const populated = await lab.populate('labIncharge', 'firstName lastName email');
         res.status(201).json({ message: 'Lab created successfully', lab: populated });
     } catch (error) {
+        console.error('Error in createLab:', error);
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };

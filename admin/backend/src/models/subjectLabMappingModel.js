@@ -5,7 +5,7 @@ const subjectLabMappingSchema = new mongoose.Schema({
     course: { type: String, required: true },
     branch: { type: String, required: true },
     semester: { type: String, required: true },
-    lab: { type: mongoose.Schema.Types.ObjectId, ref: 'Lab', required: true },
+    lab: { type: mongoose.Schema.Types.ObjectId, ref: 'LabFacility', required: true },
     faculty: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     academicYear: { type: String, default: () => `${new Date().getFullYear()}-${new Date().getFullYear() + 1}` },
     isActive: { type: Boolean, default: true },
