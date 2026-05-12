@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class LeaveService {
-  static String get baseUrl => '${dotenv.get('BACKEND_URL', fallback: 'http://localhost:5000/api')}/leaves';
+  static String get baseUrl => '${dotenv.get('BACKEND_URL', fallback: 'https://mayaerpbackend.onrender.com/api')}/leaves';
 
   static Future<Map<String, dynamic>> applyLeave(Map<String, dynamic> data) async {
     final response = await http.post(

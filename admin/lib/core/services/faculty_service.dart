@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class FacultyService {
-  static String get baseUrl => '${dotenv.get('BACKEND_URL', fallback: 'http://localhost:5000/api')}/faculty';
+  static String get baseUrl => '${dotenv.get('BACKEND_URL', fallback: 'https://mayaerpbackend.onrender.com/api')}/faculty';
 
   static Future<List<dynamic>> getCourseFaculty(String courseId) async {
     final response = await http.get(Uri.parse('$baseUrl/$courseId'));

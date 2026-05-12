@@ -7,7 +7,7 @@ class SocketService {
   static void init() {
     if (_socket != null) return;
 
-    final String serverUrl = dotenv.get('BACKEND_URL', fallback: 'http://localhost:5000/api').replaceAll('/api', '');
+    final String serverUrl = dotenv.get('BACKEND_URL', fallback: 'https://mayaerpbackend.onrender.com/api').replaceAll('/api', '');
     
     _socket = io.io(serverUrl, 
       io.OptionBuilder()

@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class LabService {
   static String get _base =>
-      dotenv.get('BACKEND_URL', fallback: 'http://localhost:5000/api');
+      dotenv.get('BACKEND_URL', fallback: 'https://mayaerpbackend.onrender.com/api');
 
   static Future<String?> _token() async {
     final prefs = await SharedPreferences.getInstance();

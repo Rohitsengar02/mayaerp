@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class CourseService {
-  static String get baseUrl => '${dotenv.env['BACKEND_URL'] ?? 'http://localhost:5000/api'}/courses';
+  static String get baseUrl => '${dotenv.env['BACKEND_URL'] ?? 'https://mayaerpbackend.onrender.com/api'}/courses';
 
   static Future<List<dynamic>> getAllCourses({String? branchId}) async {
     final url = branchId != null ? '$baseUrl?branchId=$branchId' : baseUrl;

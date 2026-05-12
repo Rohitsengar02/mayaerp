@@ -5,7 +5,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ApplicationService {
-  static String get baseUrl => '${dotenv.get('BACKEND_URL', fallback: 'http://localhost:5000/api')}/applications';
+  static String get baseUrl => '${dotenv.get('BACKEND_URL', fallback: 'https://mayaerpbackend.onrender.com/api')}/applications';
 
   // Updated Cloudinary Settings from user
   static const String cloudinaryCloudName = "dtaruu90e";

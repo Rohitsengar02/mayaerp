@@ -17,6 +17,6 @@ class AppColors {
 }
 
 class AppConstants {
-  static const String apiBaseUrl = 'http://localhost:5000/api';
-  static const String socketUrl = 'http://localhost:5000';
+  static const String apiBaseUrl = 'https://mayaerpbackend.onrender.com/api';
+  static const String socketUrl = 'https://mayaerpbackend.onrender.com';
 }

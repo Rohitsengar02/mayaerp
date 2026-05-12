@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class BranchService {
-  static String get baseUrl => '${dotenv.env['BACKEND_URL'] ?? 'http://localhost:5000/api'}/branches';
+  static String get baseUrl => '${dotenv.env['BACKEND_URL'] ?? 'https://mayaerpbackend.onrender.com/api'}/branches';
 
   static Future<List<dynamic>> getAllBranches() async {
     final response = await http.get(Uri.parse(baseUrl));

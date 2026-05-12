@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class InquiryService {
-  static String get _baseUrl => '${dotenv.get('BACKEND_URL', fallback: 'http://localhost:5000/api')}/inquiries';
+  static String get _baseUrl => '${dotenv.get('BACKEND_URL', fallback: 'https://mayaerpbackend.onrender.com/api')}/inquiries';
 
   static Future<List<dynamic>> getAllInquiries() async {
     final response = await http.get(Uri.parse(_baseUrl));

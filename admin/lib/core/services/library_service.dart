@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class LibraryService {
-  static String get _baseUrl => '${dotenv.get('BACKEND_URL', fallback: 'http://localhost:5000/api')}/library';
+  static String get _baseUrl => '${dotenv.get('BACKEND_URL', fallback: 'https://mayaerpbackend.onrender.com/api')}/library';
 
   static Future<List<dynamic>> getCirculation() async {
     final response = await http.get(Uri.parse('$_baseUrl/circulation'));
